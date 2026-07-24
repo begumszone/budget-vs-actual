@@ -1,20 +1,23 @@
 import { useState } from 'react';
-import type { Locale, ThresholdSettings, VarianceRow } from '../types';
+import type { CurrencyCode, FxReportingSettings, Locale, ThresholdSettings } from '../types';
+import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
 import { exportVarianceWorkbook } from '../lib/exportXlsx';
 
 interface Props {
-  rows: VarianceRow[];
+  rows: EnrichedVarianceRow[];
   threshold: ThresholdSettings;
   locale: Locale;
+  dataCurrency: CurrencyCode;
+  fx: FxReportingSettings;
 }
 
-export function ExportButton({ rows, threshold, locale }: Props) {
+export function ExportButton({ rows, threshold, locale, dataCurrency, fx }: Props) {
   const [busy, setBusy] = useState(false);
 
   async function handleExport() {
     setBusy(true);
     try {
-      const blob = await exportVarianceWorkbook(rows, threshold, locale);
+      const blob = await exportVarianceWorkbook(rows, threshold, locale, dataCurrency, fx);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       const timestamp = new Date().toISOString().slice(0, 10);

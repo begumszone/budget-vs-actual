@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { Locale, VarianceRow } from '../types';
+import type { CurrencyCode, Locale, VarianceRow } from '../types';
 import { formatCurrency } from '../lib/formatters';
 import { getChartPalette } from '../lib/chartPalette';
 import { usePrefersDark } from '../hooks/usePrefersDark';
@@ -17,9 +17,10 @@ import { usePrefersDark } from '../hooks/usePrefersDark';
 interface Props {
   rows: VarianceRow[];
   locale: Locale;
+  dataCurrency: CurrencyCode;
 }
 
-export function TrendChart({ rows, locale }: Props) {
+export function TrendChart({ rows, locale, dataCurrency }: Props) {
   const dark = usePrefersDark();
   const palette = getChartPalette(dark);
 
@@ -46,11 +47,13 @@ export function TrendChart({ rows, locale }: Props) {
           <YAxis
             stroke={palette.mutedInk}
             tick={{ fill: palette.mutedInk, fontSize: 12 }}
-            tickFormatter={(v) => formatCurrency(v, locale)}
+            tickFormatter={(v) => formatCurrency(v, locale, dataCurrency)}
             width={90}
           />
           <Tooltip
-            formatter={(value) => formatCurrency(typeof value === 'number' ? value : Number(value), locale)}
+            formatter={(value) =>
+              formatCurrency(typeof value === 'number' ? value : Number(value), locale, dataCurrency)
+            }
             contentStyle={{ fontSize: 13 }}
           />
           <Legend wrapperStyle={{ fontSize: 13 }} />

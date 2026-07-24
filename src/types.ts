@@ -1,5 +1,8 @@
 export type Locale = 'en' | 'tr';
 
+export const CURRENCIES = ['TRY', 'USD', 'EUR', 'GBP'] as const;
+export type CurrencyCode = (typeof CURRENCIES)[number];
+
 export type UploadMode = 'two-files' | 'single-file';
 
 /** A row as parsed straight out of a CSV/XLSX file, before any mapping. */
@@ -76,3 +79,22 @@ export interface ThresholdSettings {
 }
 
 export type AppStage = 'upload' | 'mapping' | 'results';
+
+/**
+ * Settings for the optional "report in a different currency" conversion.
+ * Rates are expressed as target-currency-per-1-unit-of-data-currency, e.g.
+ * if the data currency is USD and target is TRY, a rate of 34 means
+ * 1 USD = 34 TRY.
+ */
+export interface FxReportingSettings {
+  enabled: boolean;
+  targetCurrency: CurrencyCode;
+  budgetRate: number | null;
+  actualRate: number | null;
+}
+
+export interface FxDecomposition {
+  totalVarianceTarget: number;
+  operationalVarianceTarget: number;
+  fxVarianceTarget: number;
+}

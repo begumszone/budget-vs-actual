@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import type {
   AppStage,
+  CurrencyCode,
   DualAmountMapping,
+  FxReportingSettings,
   Locale,
   MappedRow,
   SingleAmountMapping,
@@ -12,6 +14,9 @@ import { FileUpload, type UploadResult } from './components/FileUpload';
 import { SingleAmountFileMapper, DualAmountFileMapper } from './components/ColumnMapper';
 import { ThresholdControl } from './components/ThresholdControl';
 import { LocaleToggle } from './components/LocaleToggle';
+import { DataCurrencySelector } from './components/DataCurrencySelector';
+import { FxReportingPanel } from './components/FxReportingPanel';
+import { FxSummary } from './components/FxSummary';
 import { VarianceTable } from './components/VarianceTable';
 import { SummaryCharts } from './components/SummaryCharts';
 import { TrendChart } from './components/TrendChart';
@@ -20,8 +25,15 @@ import { ExportButton } from './components/ExportButton';
 import { ResetButton } from './components/ResetButton';
 import { buildDualAmountRows, buildSingleAmountRows, type DualAmountRow } from './lib/buildMappedRows';
 import { matchTwoFiles, buildFromDualAmountRows } from './lib/matchRows';
+import { enrichRowsWithFx, isFxActive } from './lib/enrichRowsWithFx';
 
 const DEFAULT_THRESHOLD: ThresholdSettings = { percent: 10, overIsBad: true };
+const DEFAULT_FX: FxReportingSettings = {
+  enabled: false,
+  targetCurrency: 'USD',
+  budgetRate: null,
+  actualRate: null,
+};
 
 type MappedData =
   | { mode: 'two-files'; budgetRows: MappedRow[]; actualRows: MappedRow[] }
@@ -34,6 +46,8 @@ export default function App() {
   const [mappedData, setMappedData] = useState<MappedData | null>(null);
   const [threshold, setThreshold] = useState<ThresholdSettings>(DEFAULT_THRESHOLD);
   const [locale, setLocale] = useState<Locale>('en');
+  const [dataCurrency, setDataCurrency] = useState<CurrencyCode>('TRY');
+  const [fx, setFx] = useState<FxReportingSettings>(DEFAULT_FX);
 
   const [budgetMapping, setBudgetMapping] = useState<{ mapping: SingleAmountMapping; valid: boolean } | null>(null);
   const [actualMapping, setActualMapping] = useState<{ mapping: SingleAmountMapping; valid: boolean } | null>(null);
@@ -47,6 +61,13 @@ export default function App() {
     return buildFromDualAmountRows(mappedData.rows, threshold);
   }, [mappedData, threshold]);
 
+  const enrichedRows = useMemo(
+    () => enrichRowsWithFx(varianceRows, fx, dataCurrency),
+    [varianceRows, fx, dataCurrency],
+  );
+
+  const fxActive = isFxActive(fx, dataCurrency);
+
   function handleReset() {
     setStage('upload');
     setUploadMode('two-files');
@@ -56,6 +77,8 @@ export default function App() {
     setActualMapping(null);
     setCombinedMapping(null);
     setThreshold(DEFAULT_THRESHOLD);
+    setDataCurrency('TRY');
+    setFx(DEFAULT_FX);
   }
 
   function handleUploadReady(result: UploadResult) {
@@ -90,6 +113,7 @@ export default function App() {
           <p className="app-header__subtitle">Compare budgeted and actual amounts, entirely in your browser.</p>
         </div>
         <div className="app-header__controls">
+          <DataCurrencySelector value={dataCurrency} onChange={setDataCurrency} />
           <LocaleToggle value={locale} onChange={setLocale} />
           {stage === 'results' && <ResetButton onReset={handleReset} />}
         </div>
@@ -143,12 +167,22 @@ export default function App() {
           <section className="results-panel">
             <div className="results-toolbar">
               <ThresholdControl value={threshold} onChange={setThreshold} />
-              <ExportButton rows={varianceRows} threshold={threshold} locale={locale} />
+              <ExportButton rows={enrichedRows} threshold={threshold} locale={locale} dataCurrency={dataCurrency} fx={fx} />
             </div>
-            <SummaryCharts rows={varianceRows} locale={locale} />
-            <TrendChart rows={varianceRows} locale={locale} />
-            <VarianceTable rows={varianceRows} locale={locale} />
-            <UnmatchedRows rows={varianceRows} locale={locale} />
+            <section className="fx-panel-section">
+              <FxReportingPanel value={fx} onChange={setFx} dataCurrency={dataCurrency} locale={locale} />
+            </section>
+            {fxActive && <FxSummary rows={enrichedRows} targetCurrency={fx.targetCurrency} locale={locale} />}
+            <SummaryCharts rows={varianceRows} locale={locale} dataCurrency={dataCurrency} />
+            <TrendChart rows={varianceRows} locale={locale} dataCurrency={dataCurrency} />
+            <VarianceTable
+              rows={enrichedRows}
+              locale={locale}
+              dataCurrency={dataCurrency}
+              fxActive={fxActive}
+              targetCurrency={fx.targetCurrency}
+            />
+            <UnmatchedRows rows={varianceRows} locale={locale} dataCurrency={dataCurrency} />
           </section>
         )}
       </main>

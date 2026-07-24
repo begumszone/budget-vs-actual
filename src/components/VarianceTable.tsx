@@ -1,15 +1,19 @@
 import { useMemo, useState } from 'react';
-import type { Locale, VarianceRow } from '../types';
+import type { CurrencyCode, Locale } from '../types';
+import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
 import { formatCurrency, formatPercent } from '../lib/formatters';
 
 type SortKey = 'variance_percent' | 'variance_amount' | 'account_code' | 'month';
 
 interface Props {
-  rows: VarianceRow[];
+  rows: EnrichedVarianceRow[];
   locale: Locale;
+  dataCurrency: CurrencyCode;
+  fxActive: boolean;
+  targetCurrency: CurrencyCode;
 }
 
-export function VarianceTable({ rows, locale }: Props) {
+export function VarianceTable({ rows, locale, dataCurrency, fxActive, targetCurrency }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('variance_percent');
 
   const matchedRows = useMemo(() => rows.filter((r) => r.status === 'matched'), [rows]);
@@ -26,6 +30,8 @@ export function VarianceTable({ rows, locale }: Props) {
     });
     return copy;
   }, [matchedRows, sortKey]);
+
+  const columnCount = fxActive ? 9 : 7;
 
   return (
     <section className="variance-table-section">
@@ -52,6 +58,12 @@ export function VarianceTable({ rows, locale }: Props) {
               <th className="num">Actual</th>
               <th className="num">Variance</th>
               <th className="num">Variance %</th>
+              {fxActive && (
+                <>
+                  <th className="num">Operational Var. ({targetCurrency})</th>
+                  <th className="num">FX Var. ({targetCurrency})</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -70,15 +82,25 @@ export function VarianceTable({ rows, locale }: Props) {
                 </td>
                 <td>{row.department ?? '—'}</td>
                 <td>{row.month}</td>
-                <td className="num">{formatCurrency(row.budget_amount, locale)}</td>
-                <td className="num">{formatCurrency(row.actual_amount, locale)}</td>
-                <td className="num">{formatCurrency(row.variance_amount, locale)}</td>
+                <td className="num">{formatCurrency(row.budget_amount, locale, dataCurrency)}</td>
+                <td className="num">{formatCurrency(row.actual_amount, locale, dataCurrency)}</td>
+                <td className="num">{formatCurrency(row.variance_amount, locale, dataCurrency)}</td>
                 <td className="num">{formatPercent(row.variance_percent, locale)}</td>
+                {fxActive && (
+                  <>
+                    <td className="num">
+                      {row.fx ? formatCurrency(row.fx.operationalVarianceTarget, locale, targetCurrency) : 'N/A'}
+                    </td>
+                    <td className="num">
+                      {row.fx ? formatCurrency(row.fx.fxVarianceTarget, locale, targetCurrency) : 'N/A'}
+                    </td>
+                  </>
+                )}
               </tr>
             ))}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={7} className="empty-row">
+                <td colSpan={columnCount} className="empty-row">
                   No matched budget/actual rows to display.
                 </td>
               </tr>

@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
-import type { Locale, VarianceRow } from '../types';
+import type { CurrencyCode, Locale, VarianceRow } from '../types';
 import { formatCurrency } from '../lib/formatters';
 
 interface Props {
   rows: VarianceRow[];
   locale: Locale;
+  dataCurrency: CurrencyCode;
 }
 
-export function UnmatchedRows({ rows, locale }: Props) {
+export function UnmatchedRows({ rows, locale, dataCurrency }: Props) {
   const [open, setOpen] = useState(false);
 
   const unmatched = useMemo(
@@ -50,8 +51,8 @@ export function UnmatchedRows({ rows, locale }: Props) {
                   </td>
                   <td>{row.department ?? '—'}</td>
                   <td>{row.month}</td>
-                  <td className="num">{formatCurrency(row.budget_amount, locale)}</td>
-                  <td className="num">{formatCurrency(row.actual_amount, locale)}</td>
+                  <td className="num">{formatCurrency(row.budget_amount, locale, dataCurrency)}</td>
+                  <td className="num">{formatCurrency(row.actual_amount, locale, dataCurrency)}</td>
                   <td>{row.status === 'budget-only' ? 'Budget only' : 'Actual only'}</td>
                 </tr>
               ))}
