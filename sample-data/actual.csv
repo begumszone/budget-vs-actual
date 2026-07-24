@@ -1,0 +1,17 @@
+GL Code,Account Name,Department,Period,Actual Amount
+4000,Product Sales Revenue,Sales,2026-01,430000
+4000,Product Sales Revenue,Sales,2026-02,515000
+4000,Product Sales Revenue,Sales,2026-03,560000
+5000,Marketing Expenses,Sales,2026-01,47000
+5000,Marketing Expenses,Sales,2026-02,41000
+5000,Marketing Expenses,Sales,2026-03,44000
+5100,Salaries,Sales,2026-01,121000
+5100,Salaries,Sales,2026-02,119500
+5100,Salaries,Sales,2026-03,135000
+5200,Office Supplies,Operations,2026-01,6100
+5200,Office Supplies,Operations,2026-02,8000
+5200,Office Supplies,Operations,2026-03,6400
+5300,Salaries,Operations,2026-01,94000
+5300,Salaries,Operations,2026-02,96000
+5300,Salaries,Operations,2026-03,97500
+5500,Software Subscriptions,Sales,2026-02,3000

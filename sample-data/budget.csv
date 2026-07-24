@@ -1,0 +1,17 @@
+GL Code,Account Name,Department,Period,Budget Amount
+4000,Product Sales Revenue,Sales,2026-01,500000
+4000,Product Sales Revenue,Sales,2026-02,520000
+4000,Product Sales Revenue,Sales,2026-03,540000
+5000,Marketing Expenses,Sales,2026-01,40000
+5000,Marketing Expenses,Sales,2026-02,40000
+5000,Marketing Expenses,Sales,2026-03,45000
+5100,Salaries,Sales,2026-01,120000
+5100,Salaries,Sales,2026-02,120000
+5100,Salaries,Sales,2026-03,120000
+5200,Office Supplies,Operations,2026-01,6000
+5200,Office Supplies,Operations,2026-02,6000
+5200,Office Supplies,Operations,2026-03,6500
+5300,Salaries,Operations,2026-01,95000
+5300,Salaries,Operations,2026-02,95000
+5300,Salaries,Operations,2026-03,98000
+5400,Travel,Operations,2026-03,8000
