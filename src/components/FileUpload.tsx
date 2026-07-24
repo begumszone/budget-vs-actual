@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ParsedFile, UploadMode } from '../types';
+import type { AnalysisMode, ParsedFile, UploadMode } from '../types';
 import { parseFile, FileParseError } from '../lib/parseFile';
 
 interface TwoFilesResult {
@@ -13,9 +13,15 @@ interface SingleFileResult {
   combined: ParsedFile;
 }
 
-export type UploadResult = TwoFilesResult | SingleFileResult;
+interface YoyActualsResult {
+  mode: 'yoy-actuals';
+  file: ParsedFile;
+}
+
+export type UploadResult = TwoFilesResult | SingleFileResult | YoyActualsResult;
 
 interface Props {
+  analysisMode: AnalysisMode;
   mode: UploadMode;
   onModeChange: (mode: UploadMode) => void;
   onReady: (result: UploadResult) => void;
@@ -49,18 +55,26 @@ function FilePicker({
   );
 }
 
-export function FileUpload({ mode, onModeChange, onReady }: Props) {
+export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props) {
   const [budgetFile, setBudgetFile] = useState<File | null>(null);
   const [actualFile, setActualFile] = useState<File | null>(null);
   const [combinedFile, setCombinedFile] = useState<File | null>(null);
-  const [errors, setErrors] = useState<{ budget?: string; actual?: string; combined?: string }>({});
+  const [yoyFile, setYoyFile] = useState<File | null>(null);
+  const [errors, setErrors] = useState<{ budget?: string; actual?: string; combined?: string; yoy?: string }>({});
   const [loading, setLoading] = useState(false);
 
   async function handleContinue() {
     setErrors({});
     setLoading(true);
     try {
-      if (mode === 'two-files') {
+      if (analysisMode === 'yoy') {
+        if (!yoyFile) {
+          setErrors({ yoy: 'Please choose an actuals file.' });
+          return;
+        }
+        const file = await parseFile(yoyFile);
+        onReady({ mode: 'yoy-actuals', file });
+      } else if (mode === 'two-files') {
         if (!budgetFile || !actualFile) {
           setErrors({
             budget: budgetFile ? undefined : 'Please choose a budget file.',
@@ -90,13 +104,36 @@ export function FileUpload({ mode, onModeChange, onReady }: Props) {
       if (asFieldError?.field && asFieldError.error instanceof FileParseError) {
         setErrors({ [asFieldError.field]: asFieldError.error.message });
       } else if (err instanceof FileParseError) {
-        setErrors({ combined: err.message });
+        setErrors({ combined: err.message, yoy: err.message });
       } else {
-        setErrors({ combined: 'Something went wrong while reading the file.' });
+        setErrors({ combined: 'Something went wrong while reading the file.', yoy: 'Something went wrong while reading the file.' });
       }
     } finally {
       setLoading(false);
     }
+  }
+
+  if (analysisMode === 'yoy') {
+    return (
+      <section className="upload-panel">
+        <h2>1. Upload your data</h2>
+        <p className="mapping-panel__hint">
+          Upload a single actuals file that spans multiple years -- you'll pick which two years to compare in
+          the next step.
+        </p>
+        <div className="upload-grid">
+          <FilePicker
+            label="Actuals file (all years)"
+            file={yoyFile}
+            onFile={setYoyFile}
+            error={errors.yoy ?? null}
+          />
+        </div>
+        <button className="btn btn--primary" onClick={handleContinue} disabled={loading}>
+          {loading ? 'Reading file…' : 'Continue to column mapping'}
+        </button>
+      </section>
+    );
   }
 
   return (

@@ -1,11 +1,13 @@
 import type { ThresholdSettings } from '../types';
+import type { ModeLabels } from '../lib/modeLabels';
 
 interface Props {
   value: ThresholdSettings;
   onChange: (value: ThresholdSettings) => void;
+  labels: ModeLabels;
 }
 
-export function ThresholdControl({ value, onChange }: Props) {
+export function ThresholdControl({ value, onChange, labels }: Props) {
   return (
     <div className="threshold-control">
       <label className="threshold-control__field">
@@ -26,11 +28,11 @@ export function ThresholdControl({ value, onChange }: Props) {
       <label className="threshold-control__field">
         Bad direction
         <select
-          value={value.overIsBad ? 'over' : 'under'}
-          onChange={(e) => onChange({ ...value, overIsBad: e.target.value === 'over' })}
+          value={value.increaseIsBad ? 'increase' : 'decrease'}
+          onChange={(e) => onChange({ ...value, increaseIsBad: e.target.value === 'increase' })}
         >
-          <option value="over">Over budget is bad (expenses)</option>
-          <option value="under">Under budget is bad (revenue)</option>
+          <option value="increase">{labels.increaseBadOption}</option>
+          <option value="decrease">{labels.decreaseBadOption}</option>
         </select>
       </label>
     </div>

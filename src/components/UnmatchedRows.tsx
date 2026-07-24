@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react';
 import type { CurrencyCode, Locale, VarianceRow } from '../types';
 import { formatCurrency } from '../lib/formatters';
+import type { ModeLabels } from '../lib/modeLabels';
 
 interface Props {
   rows: VarianceRow[];
   locale: Locale;
   dataCurrency: CurrencyCode;
+  labels: ModeLabels;
+  formatMonth: (month: string) => string;
 }
 
-export function UnmatchedRows({ rows, locale, dataCurrency }: Props) {
+export function UnmatchedRows({ rows, locale, dataCurrency, labels, formatMonth }: Props) {
   const [open, setOpen] = useState(false);
 
   const unmatched = useMemo(
@@ -18,14 +21,15 @@ export function UnmatchedRows({ rows, locale, dataCurrency }: Props) {
 
   if (unmatched.length === 0) return null;
 
-  const budgetOnly = unmatched.filter((r) => r.status === 'budget-only');
-  const actualOnly = unmatched.filter((r) => r.status === 'actual-only');
+  const baseOnly = unmatched.filter((r) => r.status === 'base-only');
+  const comparisonOnly = unmatched.filter((r) => r.status === 'comparison-only');
 
   return (
     <section className="unmatched-section">
       <button className="unmatched-toggle" onClick={() => setOpen((o) => !o)}>
         {open ? '▾' : '▸'} {unmatched.length} unmatched row{unmatched.length === 1 ? '' : 's'} found
-        ({budgetOnly.length} in budget only, {actualOnly.length} in actual only)
+        ({baseOnly.length} {labels.baseOnlyLabel.toLowerCase()}, {comparisonOnly.length}{' '}
+        {labels.comparisonOnlyLabel.toLowerCase()})
       </button>
       {open && (
         <div className="table-scroll">
@@ -35,8 +39,8 @@ export function UnmatchedRows({ rows, locale, dataCurrency }: Props) {
                 <th>Account</th>
                 <th>Department</th>
                 <th>Month</th>
-                <th className="num">Budget</th>
-                <th className="num">Actual</th>
+                <th className="num">{labels.base}</th>
+                <th className="num">{labels.comparison}</th>
                 <th>Present in</th>
               </tr>
             </thead>
@@ -50,10 +54,10 @@ export function UnmatchedRows({ rows, locale, dataCurrency }: Props) {
                     </div>
                   </td>
                   <td>{row.department ?? '—'}</td>
-                  <td>{row.month}</td>
-                  <td className="num">{formatCurrency(row.budget_amount, locale, dataCurrency)}</td>
-                  <td className="num">{formatCurrency(row.actual_amount, locale, dataCurrency)}</td>
-                  <td>{row.status === 'budget-only' ? 'Budget only' : 'Actual only'}</td>
+                  <td>{formatMonth(row.month)}</td>
+                  <td className="num">{formatCurrency(row.base_amount, locale, dataCurrency)}</td>
+                  <td className="num">{formatCurrency(row.comparison_amount, locale, dataCurrency)}</td>
+                  <td>{row.status === 'base-only' ? labels.baseOnlyLabel : labels.comparisonOnlyLabel}</td>
                 </tr>
               ))}
             </tbody>

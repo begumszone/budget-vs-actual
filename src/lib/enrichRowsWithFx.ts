@@ -14,10 +14,10 @@ export function isFxActive(fx: FxReportingSettings, dataCurrency: string): boole
   return (
     fx.enabled &&
     fx.targetCurrency !== dataCurrency &&
-    fx.budgetRate !== null &&
-    fx.actualRate !== null &&
-    fx.budgetRate > 0 &&
-    fx.actualRate > 0
+    fx.baseRate !== null &&
+    fx.comparisonRate !== null &&
+    fx.baseRate > 0 &&
+    fx.comparisonRate > 0
   );
 }
 
@@ -29,6 +29,8 @@ export function enrichRowsWithFx(
   const active = isFxActive(fx, dataCurrency);
   return rows.map((row) => ({
     ...row,
-    fx: active ? calculateFxDecomposition(row.budget_amount, row.actual_amount, fx.budgetRate, fx.actualRate) : null,
+    fx: active
+      ? calculateFxDecomposition(row.base_amount, row.comparison_amount, fx.baseRate, fx.comparisonRate)
+      : null,
   }));
 }

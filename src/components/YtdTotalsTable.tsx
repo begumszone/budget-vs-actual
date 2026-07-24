@@ -1,52 +1,48 @@
 import { useMemo, useState } from 'react';
 import type { CurrencyCode, Locale } from '../types';
-import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
+import type { YtdTotalRow } from '../lib/computeYtdTotals';
 import { formatCurrency, formatPercent } from '../lib/formatters';
 import type { ModeLabels } from '../lib/modeLabels';
 
-type SortKey = 'variance_percent' | 'variance_amount' | 'account_code' | 'month';
+type SortKey = 'variance_percent' | 'variance_amount' | 'account_code';
 
 interface Props {
-  rows: EnrichedVarianceRow[];
+  rows: YtdTotalRow[];
   locale: Locale;
   dataCurrency: CurrencyCode;
   fxActive: boolean;
   targetCurrency: CurrencyCode;
   labels: ModeLabels;
-  formatMonth: (month: string) => string;
 }
 
-export function VarianceTable({ rows, locale, dataCurrency, fxActive, targetCurrency, labels, formatMonth }: Props) {
+export function YtdTotalsTable({ rows, locale, dataCurrency, fxActive, targetCurrency, labels }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('variance_percent');
 
-  const matchedRows = useMemo(() => rows.filter((r) => r.status === 'matched'), [rows]);
-
   const sorted = useMemo(() => {
-    const copy = [...matchedRows];
+    const copy = [...rows];
     copy.sort((a, b) => {
       if (sortKey === 'variance_percent' || sortKey === 'variance_amount') {
         const av = a[sortKey] === null ? -Infinity : Math.abs(a[sortKey] as number);
         const bv = b[sortKey] === null ? -Infinity : Math.abs(b[sortKey] as number);
         return bv - av;
       }
-      return String(a[sortKey]).localeCompare(String(b[sortKey]));
+      return a.account_code.localeCompare(b.account_code);
     });
     return copy;
-  }, [matchedRows, sortKey]);
+  }, [rows, sortKey]);
 
-  const columnCount = fxActive ? 9 : 7;
+  if (rows.length === 0) return null;
 
   return (
     <section className="variance-table-section">
       <div className="section-header">
-        <h2>Variance detail</h2>
+        <h2>Total by account ({labels.base} vs {labels.comparison}, all months)</h2>
         <label className="sort-select">
           Sort by
           <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}>
             <option value="variance_percent">Biggest variance (%)</option>
             <option value="variance_amount">Biggest variance (amount)</option>
             <option value="account_code">Account code</option>
-            <option value="month">Month</option>
           </select>
         </label>
       </div>
@@ -56,7 +52,6 @@ export function VarianceTable({ rows, locale, dataCurrency, fxActive, targetCurr
             <tr>
               <th>Account</th>
               <th>Department</th>
-              <th>Month</th>
               <th className="num">{labels.base}</th>
               <th className="num">{labels.comparison}</th>
               <th className="num">Variance</th>
@@ -71,12 +66,7 @@ export function VarianceTable({ rows, locale, dataCurrency, fxActive, targetCurr
           </thead>
           <tbody>
             {sorted.map((row) => (
-              <tr
-                key={row.key}
-                className={
-                  row.isSignificant ? `row--significant row--${row.direction}` : undefined
-                }
-              >
+              <tr key={row.key} className={row.isSignificant ? `row--significant row--${row.direction}` : undefined}>
                 <td>
                   <div className="account-cell">
                     <span className="account-cell__code">{row.account_code}</span>
@@ -84,7 +74,6 @@ export function VarianceTable({ rows, locale, dataCurrency, fxActive, targetCurr
                   </div>
                 </td>
                 <td>{row.department ?? '—'}</td>
-                <td>{formatMonth(row.month)}</td>
                 <td className="num">{formatCurrency(row.base_amount, locale, dataCurrency)}</td>
                 <td className="num">{formatCurrency(row.comparison_amount, locale, dataCurrency)}</td>
                 <td className="num">{formatCurrency(row.variance_amount, locale, dataCurrency)}</td>
@@ -101,13 +90,6 @@ export function VarianceTable({ rows, locale, dataCurrency, fxActive, targetCurr
                 )}
               </tr>
             ))}
-            {sorted.length === 0 && (
-              <tr>
-                <td colSpan={columnCount} className="empty-row">
-                  No matched {labels.base.toLowerCase()}/{labels.comparison.toLowerCase()} rows to display.
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>

@@ -121,6 +121,41 @@ p {
   gap: 12px;
 }
 
+.mode-switch-row {
+  margin-bottom: 24px;
+}
+
+.mode-switch {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mode-switch__btn {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 9px 16px;
+  border: none;
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.mode-switch__btn--active {
+  background: var(--series-budget);
+  color: #ffffff;
+}
+
+.year-range-selector {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
 .app-main {
   display: flex;
   flex-direction: column;
@@ -476,11 +511,11 @@ table.variance-table {
   color: var(--text-muted);
 }
 
-.row--significant.row--over {
+.row--significant.row--increase {
   background: var(--status-critical-bg);
 }
 
-.row--significant.row--under {
+.row--significant.row--decrease {
   background: var(--status-good-bg);
 }
 
