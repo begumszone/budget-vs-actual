@@ -9,21 +9,22 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { CurrencyCode, Locale, VarianceRow } from '../types';
+import type { CurrencyCode, Locale } from '../types';
+import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
 import { formatCurrency } from '../lib/formatters';
 import { getChartPalette } from '../lib/chartPalette';
 import { usePrefersDark } from '../hooks/usePrefersDark';
 import type { ModeLabels } from '../lib/modeLabels';
 
 interface Props {
-  rows: VarianceRow[];
+  rows: EnrichedVarianceRow[];
   locale: Locale;
-  dataCurrency: CurrencyCode;
+  displayCurrency: CurrencyCode;
   labels: ModeLabels;
   formatMonth: (month: string) => string;
 }
 
-export function TrendChart({ rows, locale, dataCurrency, labels, formatMonth }: Props) {
+export function TrendChart({ rows, locale, displayCurrency, labels, formatMonth }: Props) {
   const dark = usePrefersDark();
   const palette = getChartPalette(dark);
 
@@ -31,8 +32,8 @@ export function TrendChart({ rows, locale, dataCurrency, labels, formatMonth }: 
     const months = new Map<string, { month: string; base: number; comparison: number }>();
     for (const row of rows) {
       const bucket = months.get(row.month) ?? { month: row.month, base: 0, comparison: 0 };
-      bucket.base += row.base_amount ?? 0;
-      bucket.comparison += row.comparison_amount ?? 0;
+      bucket.base += row.displayBase ?? 0;
+      bucket.comparison += row.displayComparison ?? 0;
       months.set(row.month, bucket);
     }
     return [...months.values()].sort((a, b) => a.month.localeCompare(b.month));
@@ -55,13 +56,13 @@ export function TrendChart({ rows, locale, dataCurrency, labels, formatMonth }: 
           <YAxis
             stroke={palette.mutedInk}
             tick={{ fill: palette.mutedInk, fontSize: 12 }}
-            tickFormatter={(v) => formatCurrency(v, locale, dataCurrency)}
+            tickFormatter={(v) => formatCurrency(v, locale, displayCurrency)}
             width={90}
           />
           <Tooltip
             labelFormatter={(label) => formatMonth(String(label))}
             formatter={(value) =>
-              formatCurrency(typeof value === 'number' ? value : Number(value), locale, dataCurrency)
+              formatCurrency(typeof value === 'number' ? value : Number(value), locale, displayCurrency)
             }
             contentStyle={{ fontSize: 13 }}
           />

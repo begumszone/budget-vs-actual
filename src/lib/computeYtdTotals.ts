@@ -1,8 +1,7 @@
-import type { FxReportingSettings, ThresholdSettings, VarianceRow } from '../types';
-import { calculateVariance } from './calculateVariance';
-import { calculateFxDecomposition } from './calculateFxVariance';
-import { isFxActive } from './enrichRowsWithFx';
+import type { ThresholdSettings } from '../types';
 import type { FxDecomposition } from '../types';
+import { calculateVariance } from './calculateVariance';
+import type { EnrichedVarianceRow } from './enrichRowsWithFx';
 
 export interface YtdTotalRow {
   key: string;
@@ -16,28 +15,38 @@ export interface YtdTotalRow {
   isSignificant: boolean;
   direction: 'increase' | 'decrease' | null;
   monthsPresent: number;
+  /** How many of those months couldn't be converted (fx active, rate missing on either side). */
+  monthsMissingRate: number;
   fx: FxDecomposition | null;
 }
 
 /**
  * Rolls variance rows up to one total per account (+ department), summing
- * across every month present. Rows are summed regardless of per-month match
- * status, so an account that only exists in one period (a new or
- * discontinued line) still gets a total -- with the missing side at 0 --
- * which surfaces it clearly rather than letting it disappear into a long
- * list of monthly unmatched rows.
+ * across every month present. Sums the already-converted `display*` amounts
+ * from each row -- never the raw local amount times a single rate -- since
+ * with per-month rates, a correct multi-month total is the sum of each
+ * month's own conversion, not one rate applied to a summed total.
+ *
+ * Rows are summed regardless of per-month match status, so an account that
+ * only exists in one period (a new or discontinued line) still gets a
+ * total -- with the missing side at 0 -- which surfaces it clearly rather
+ * than letting it disappear into a long list of monthly unmatched rows.
  */
-export function computeYtdTotals(
-  rows: VarianceRow[],
-  threshold: ThresholdSettings,
-  fx: FxReportingSettings,
-  dataCurrency: string,
-): YtdTotalRow[] {
-  const fxActive = isFxActive(fx, dataCurrency);
-
+export function computeYtdTotals(rows: EnrichedVarianceRow[], threshold: ThresholdSettings): YtdTotalRow[] {
   const buckets = new Map<
     string,
-    { account_code: string; account_name: string; department: string | null; base: number; comparison: number; months: number }
+    {
+      account_code: string;
+      account_name: string;
+      department: string | null;
+      base: number;
+      comparison: number;
+      months: number;
+      monthsMissingRate: number;
+      operational: number;
+      fx: number;
+      hasFx: boolean;
+    }
   >();
 
   for (const row of rows) {
@@ -49,10 +58,20 @@ export function computeYtdTotals(
       base: 0,
       comparison: 0,
       months: 0,
+      monthsMissingRate: 0,
+      operational: 0,
+      fx: 0,
+      hasFx: false,
     };
-    bucket.base += row.base_amount ?? 0;
-    bucket.comparison += row.comparison_amount ?? 0;
+    bucket.base += row.displayBase ?? 0;
+    bucket.comparison += row.displayComparison ?? 0;
     bucket.months += 1;
+    if (row.baseRateMissing || row.comparisonRateMissing) bucket.monthsMissingRate += 1;
+    if (row.fx) {
+      bucket.operational += row.fx.operationalVarianceTarget;
+      bucket.fx += row.fx.fxVarianceTarget;
+      bucket.hasFx = true;
+    }
     if (!bucket.account_name) bucket.account_name = row.account_name;
     buckets.set(key, bucket);
   }
@@ -76,7 +95,14 @@ export function computeYtdTotals(
       isSignificant,
       direction,
       monthsPresent: bucket.months,
-      fx: fxActive ? calculateFxDecomposition(bucket.base, bucket.comparison, fx.baseRate, fx.comparisonRate) : null,
+      monthsMissingRate: bucket.monthsMissingRate,
+      fx: bucket.hasFx
+        ? {
+            totalVarianceTarget: bucket.operational + bucket.fx,
+            operationalVarianceTarget: bucket.operational,
+            fxVarianceTarget: bucket.fx,
+          }
+        : null,
     });
   }
 

@@ -1,17 +1,18 @@
 import { useMemo, useState } from 'react';
-import type { CurrencyCode, Locale, VarianceRow } from '../types';
-import { formatCurrency } from '../lib/formatters';
+import type { CurrencyCode, Locale } from '../types';
+import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
 import type { ModeLabels } from '../lib/modeLabels';
+import { NoRateCell } from './NoRateCell';
 
 interface Props {
-  rows: VarianceRow[];
+  rows: EnrichedVarianceRow[];
   locale: Locale;
-  dataCurrency: CurrencyCode;
+  displayCurrency: CurrencyCode;
   labels: ModeLabels;
   formatMonth: (month: string) => string;
 }
 
-export function UnmatchedRows({ rows, locale, dataCurrency, labels, formatMonth }: Props) {
+export function UnmatchedRows({ rows, locale, displayCurrency, labels, formatMonth }: Props) {
   const [open, setOpen] = useState(false);
 
   const unmatched = useMemo(
@@ -55,8 +56,17 @@ export function UnmatchedRows({ rows, locale, dataCurrency, labels, formatMonth 
                   </td>
                   <td>{row.department ?? '—'}</td>
                   <td>{formatMonth(row.month)}</td>
-                  <td className="num">{formatCurrency(row.base_amount, locale, dataCurrency)}</td>
-                  <td className="num">{formatCurrency(row.comparison_amount, locale, dataCurrency)}</td>
+                  <td className="num">
+                    <NoRateCell value={row.displayBase} missingRate={row.baseRateMissing} locale={locale} currency={displayCurrency} />
+                  </td>
+                  <td className="num">
+                    <NoRateCell
+                      value={row.displayComparison}
+                      missingRate={row.comparisonRateMissing}
+                      locale={locale}
+                      currency={displayCurrency}
+                    />
+                  </td>
                   <td>{row.status === 'base-only' ? labels.baseOnlyLabel : labels.comparisonOnlyLabel}</td>
                 </tr>
               ))}

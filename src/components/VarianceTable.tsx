@@ -1,30 +1,31 @@
 import { useMemo, useState } from 'react';
 import type { CurrencyCode, Locale } from '../types';
 import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
-import { formatCurrency, formatPercent } from '../lib/formatters';
+import { formatPercent } from '../lib/formatters';
 import type { ModeLabels } from '../lib/modeLabels';
+import { NoRateCell } from './NoRateCell';
 
-type SortKey = 'variance_percent' | 'variance_amount' | 'account_code' | 'month';
+type SortKey = 'displayVariancePercent' | 'displayVariance' | 'account_code' | 'month';
 
 interface Props {
   rows: EnrichedVarianceRow[];
   locale: Locale;
-  dataCurrency: CurrencyCode;
+  displayCurrency: CurrencyCode;
   fxActive: boolean;
   targetCurrency: CurrencyCode;
   labels: ModeLabels;
   formatMonth: (month: string) => string;
 }
 
-export function VarianceTable({ rows, locale, dataCurrency, fxActive, targetCurrency, labels, formatMonth }: Props) {
-  const [sortKey, setSortKey] = useState<SortKey>('variance_percent');
+export function VarianceTable({ rows, locale, displayCurrency, fxActive, targetCurrency, labels, formatMonth }: Props) {
+  const [sortKey, setSortKey] = useState<SortKey>('displayVariancePercent');
 
   const matchedRows = useMemo(() => rows.filter((r) => r.status === 'matched'), [rows]);
 
   const sorted = useMemo(() => {
     const copy = [...matchedRows];
     copy.sort((a, b) => {
-      if (sortKey === 'variance_percent' || sortKey === 'variance_amount') {
+      if (sortKey === 'displayVariancePercent' || sortKey === 'displayVariance') {
         const av = a[sortKey] === null ? -Infinity : Math.abs(a[sortKey] as number);
         const bv = b[sortKey] === null ? -Infinity : Math.abs(b[sortKey] as number);
         return bv - av;
@@ -43,8 +44,8 @@ export function VarianceTable({ rows, locale, dataCurrency, fxActive, targetCurr
         <label className="sort-select">
           Sort by
           <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}>
-            <option value="variance_percent">Biggest variance (%)</option>
-            <option value="variance_amount">Biggest variance (amount)</option>
+            <option value="displayVariancePercent">Biggest variance (%)</option>
+            <option value="displayVariance">Biggest variance (amount)</option>
             <option value="account_code">Account code</option>
             <option value="month">Month</option>
           </select>
@@ -74,7 +75,7 @@ export function VarianceTable({ rows, locale, dataCurrency, fxActive, targetCurr
               <tr
                 key={row.key}
                 className={
-                  row.isSignificant ? `row--significant row--${row.direction}` : undefined
+                  row.displayIsSignificant ? `row--significant row--${row.displayDirection}` : undefined
                 }
               >
                 <td>
@@ -85,17 +86,49 @@ export function VarianceTable({ rows, locale, dataCurrency, fxActive, targetCurr
                 </td>
                 <td>{row.department ?? '—'}</td>
                 <td>{formatMonth(row.month)}</td>
-                <td className="num">{formatCurrency(row.base_amount, locale, dataCurrency)}</td>
-                <td className="num">{formatCurrency(row.comparison_amount, locale, dataCurrency)}</td>
-                <td className="num">{formatCurrency(row.variance_amount, locale, dataCurrency)}</td>
-                <td className="num">{formatPercent(row.variance_percent, locale)}</td>
+                <td className="num">
+                  <NoRateCell value={row.displayBase} missingRate={row.baseRateMissing} locale={locale} currency={displayCurrency} />
+                </td>
+                <td className="num">
+                  <NoRateCell
+                    value={row.displayComparison}
+                    missingRate={row.comparisonRateMissing}
+                    locale={locale}
+                    currency={displayCurrency}
+                  />
+                </td>
+                <td className="num">
+                  <NoRateCell
+                    value={row.displayVariance}
+                    missingRate={row.baseRateMissing || row.comparisonRateMissing}
+                    locale={locale}
+                    currency={displayCurrency}
+                  />
+                </td>
+                <td className="num">
+                  {row.baseRateMissing || row.comparisonRateMissing ? (
+                    <span className="no-rate-flag">No rate</span>
+                  ) : (
+                    formatPercent(row.displayVariancePercent, locale)
+                  )}
+                </td>
                 {fxActive && (
                   <>
                     <td className="num">
-                      {row.fx ? formatCurrency(row.fx.operationalVarianceTarget, locale, targetCurrency) : 'N/A'}
+                      <NoRateCell
+                        value={row.fx?.operationalVarianceTarget ?? null}
+                        missingRate={!row.fx}
+                        locale={locale}
+                        currency={targetCurrency}
+                      />
                     </td>
                     <td className="num">
-                      {row.fx ? formatCurrency(row.fx.fxVarianceTarget, locale, targetCurrency) : 'N/A'}
+                      <NoRateCell
+                        value={row.fx?.fxVarianceTarget ?? null}
+                        missingRate={!row.fx}
+                        locale={locale}
+                        currency={targetCurrency}
+                      />
                     </td>
                   </>
                 )}

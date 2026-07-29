@@ -3,6 +3,7 @@ import type { CurrencyCode, FxReportingSettings, Locale, ThresholdSettings } fro
 import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
 import type { YtdTotalRow } from '../lib/computeYtdTotals';
 import type { ModeLabels } from '../lib/modeLabels';
+import type { MonthlyRateEntry } from '../lib/monthlyRates';
 import { exportVarianceWorkbook } from '../lib/exportXlsx';
 
 interface Props {
@@ -14,15 +15,26 @@ interface Props {
   fx: FxReportingSettings;
   labels: ModeLabels;
   formatMonth: (month: string) => string;
+  rateEntries: MonthlyRateEntry[];
 }
 
-export function ExportButton({ rows, ytdRows, threshold, locale, dataCurrency, fx, labels, formatMonth }: Props) {
+export function ExportButton({ rows, ytdRows, threshold, locale, dataCurrency, fx, labels, formatMonth, rateEntries }: Props) {
   const [busy, setBusy] = useState(false);
 
   async function handleExport() {
     setBusy(true);
     try {
-      const blob = await exportVarianceWorkbook(rows, ytdRows, threshold, locale, dataCurrency, fx, labels, formatMonth);
+      const blob = await exportVarianceWorkbook(
+        rows,
+        ytdRows,
+        threshold,
+        locale,
+        dataCurrency,
+        fx,
+        labels,
+        formatMonth,
+        rateEntries,
+      );
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       const timestamp = new Date().toISOString().slice(0, 10);

@@ -102,18 +102,31 @@ export interface ThresholdSettings {
 export type AppStage = 'upload' | 'mapping' | 'results';
 
 /**
+ * A rate pair for one specific calendar month ("YYYY-MM"). Rates are
+ * expressed as target-currency-per-1-unit-of-data-currency, e.g. if the
+ * data currency is USD and target is TRY, a rate of 34 means 1 USD = 34 TRY.
+ * `baseRate` converts that month's base-side amount, `comparisonRate` its
+ * comparison-side amount -- in budget-vs-actual both apply to the same
+ * calendar month (budget rate vs actual rate for that month); in
+ * year-over-year, a given "YYYY-MM" key belongs entirely to either the base
+ * year or the comparison year, so only the relevant field is ever set.
+ */
+export interface MonthlyRate {
+  baseRate: number | null;
+  comparisonRate: number | null;
+}
+
+/**
  * Settings for the optional "report in a different currency" conversion.
- * Rates are expressed as target-currency-per-1-unit-of-data-currency, e.g.
- * if the data currency is USD and target is TRY, a rate of 34 means
- * 1 USD = 34 TRY. `baseRate` applies to the base period's amounts,
- * `comparisonRate` to the comparison period's -- in year-over-year mode
- * these are each year's own rate.
+ * Rates are entered per calendar month rather than once for the whole
+ * analysis, since a realized rate genuinely varies month to month. `rates`
+ * is keyed by canonical "YYYY-MM" -- see lib/monthlyRates.ts for how a
+ * VarianceRow's `month` field maps to that key in each analysis mode.
  */
 export interface FxReportingSettings {
   enabled: boolean;
   targetCurrency: CurrencyCode;
-  baseRate: number | null;
-  comparisonRate: number | null;
+  rates: Record<string, MonthlyRate>;
 }
 
 export interface FxDecomposition {

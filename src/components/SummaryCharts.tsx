@@ -9,20 +9,21 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { CurrencyCode, Locale, VarianceRow } from '../types';
+import type { CurrencyCode, Locale } from '../types';
+import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
 import { formatCurrency } from '../lib/formatters';
 import { getChartPalette } from '../lib/chartPalette';
 import { usePrefersDark } from '../hooks/usePrefersDark';
 import type { ModeLabels } from '../lib/modeLabels';
 
 interface Props {
-  rows: VarianceRow[];
+  rows: EnrichedVarianceRow[];
   locale: Locale;
-  dataCurrency: CurrencyCode;
+  displayCurrency: CurrencyCode;
   labels: ModeLabels;
 }
 
-export function SummaryCharts({ rows, locale, dataCurrency, labels }: Props) {
+export function SummaryCharts({ rows, locale, displayCurrency, labels }: Props) {
   const dark = usePrefersDark();
   const palette = getChartPalette(dark);
 
@@ -34,8 +35,8 @@ export function SummaryCharts({ rows, locale, dataCurrency, labels }: Props) {
     for (const row of rows) {
       const name = (groupKey === 'department' ? row.department : row.account_code) ?? 'Unassigned';
       const bucket = groups.get(name) ?? { name, base: 0, comparison: 0 };
-      bucket.base += row.base_amount ?? 0;
-      bucket.comparison += row.comparison_amount ?? 0;
+      bucket.base += row.displayBase ?? 0;
+      bucket.comparison += row.displayComparison ?? 0;
       groups.set(name, bucket);
     }
     return [...groups.values()].sort((a, b) => b.base + b.comparison - (a.base + a.comparison));
@@ -55,12 +56,12 @@ export function SummaryCharts({ rows, locale, dataCurrency, labels }: Props) {
           <YAxis
             stroke={palette.mutedInk}
             tick={{ fill: palette.mutedInk, fontSize: 12 }}
-            tickFormatter={(v) => formatCurrency(v, locale, dataCurrency)}
+            tickFormatter={(v) => formatCurrency(v, locale, displayCurrency)}
             width={90}
           />
           <Tooltip
             formatter={(value) =>
-              formatCurrency(typeof value === 'number' ? value : Number(value), locale, dataCurrency)
+              formatCurrency(typeof value === 'number' ? value : Number(value), locale, displayCurrency)
             }
             contentStyle={{ fontSize: 13 }}
           />

@@ -38,26 +38,34 @@ The currency itself is set separately with the **Data currency** selector (TRY, 
 
 ## Reporting in a different currency (FX variance decomposition)
 
-Sometimes the base and comparison periods were valued at different FX rates, and you want to know how much of the total variance is genuinely operational (you spent/earned more or less) versus just currency movement. This works the same way in both analysis modes — in Budget vs Actual the two rates are the budget (plan) rate and the actual (realized) rate; in Year over Year they're each year's own rate. Enable **"Report in a different currency"** on the results screen to see the split:
+Sometimes the base and comparison periods were valued at different FX rates, and you want to know how much of the total variance is genuinely operational (you spent/earned more or less) versus just currency movement. This works the same way in both analysis modes — in Budget vs Actual the two rates per month are the budget (plan) rate and the actual (realized) rate; in Year over Year they're each year's own rate. Enable **"Report in a different currency"** on the results screen to see the split.
 
-- Pick a **target currency** and enter the **base rate** and the **comparison rate**, both expressed as *target currency per 1 unit of data currency*.
-- For each row, the total variance in the target currency is split into:
+**Everything switches to the target currency at once.** Once enabled, the department bar chart, the monthly trend line, the variance table, the Total-by-account roll-up, and the Excel export all show figures in the target currency — axis labels, tooltips, columns, and totals alike. The data currency is never shown alongside it; there is only ever one currency on screen at a time.
 
-  ```
-  Total variance       = comparison_local × r_comparison − base_local × r_base
-  Operational variance = (comparison_local − base_local) × r_base
-  FX variance          = comparison_local × (r_comparison − r_base)
-  ```
+**Rates are entered per calendar month, not once for the whole analysis**, since a realized rate genuinely moves month to month:
 
-  `Operational variance + FX variance` always equals `Total variance` exactly — the app runs a reconciliation check on every row and throws if it doesn't add up, so this isn't just a documentation promise.
+- A **rate table** appears with one row per month actually present in your data, grouped by year. Budget-vs-actual months get both a base-rate and a comparison-rate column (since a budget line and its actual line share the same calendar month); Year-over-year months get whichever single column applies to that year.
+- For the base-rate column specifically (the "plan" side), each year group has an **"Apply one rate to all months"** shortcut, since a budget or reference rate is often a single figure set once for the year. The comparison-rate column (realized rates) has no such shortcut — those are expected to vary and are entered per month.
+- You can **paste a column of rates copied from Excel** directly into the first cell of a column; it fills downward through the remaining months.
+- **A month with no rate is flagged, never assumed to be 1.0.** Its cells show "No rate" instead of a number, and it's excluded from converted totals (rather than silently guessing) — check the rate table if a total looks lower than expected.
 
-- **Convention:** the FX effect is measured **on comparison-side volume** — it's "what would the rate movement alone be worth if the comparison amount had been converted at the base rate instead?" This means the operational variance is valued at the *base* rate and the residual (the FX variance) absorbs the rest.
-- If you pick a target currency that's the same as your data currency, there's nothing to convert, so the split is hidden.
-- Missing or non-positive rates (blank, zero, or negative) are treated as "not entered yet" — the split shows "N/A" rather than dividing by zero or producing a nonsensical rate.
+For each row with both rates present, the total variance in the target currency is split into:
 
-When enabled, the variance table (and the Total-by-account roll-up) gain **Operational Variance** and **FX Variance** columns in the target currency, and a small summary above the table shows the totals for all three figures. The Excel export adds the same columns to the detail and YTD-totals sheets, department-level totals to the Summary sheet, and a rates note to the Notes sheet.
+```
+Total variance       = comparison_local × r_comparison − base_local × r_base
+Operational variance = (comparison_local − base_local) × r_base
+FX variance          = comparison_local × (r_comparison − r_base)
+```
 
-Try it with the bundled USD sample data ([`sample-data/budget-usd.csv`](sample-data/budget-usd.csv) / [`sample-data/actual-usd.csv`](sample-data/actual-usd.csv)): set **Data currency** to USD, upload those two files, then enable currency reporting with target **TRY**, base rate **32**, and comparison rate **34** — one row (`6000`, January) has identical amounts on both sides in USD, so its entire variance in TRY is pure FX, making the split easy to sanity-check.
+`Operational variance + FX variance` always equals `Total variance` exactly for every convertible row — the app runs a reconciliation check on every row and throws if it doesn't add up, so this isn't just a documentation promise.
+
+**Convention:** the FX effect is measured **on comparison-side volume** — it's "what would the rate movement alone be worth if the comparison amount had been converted at the base rate instead?" This means the operational variance is valued at the *base* rate and the residual (the FX variance) absorbs the rest.
+
+If you pick a target currency that's the same as your data currency, there's nothing to convert, so the split is hidden entirely.
+
+The variance table (and the Total-by-account roll-up) gain **Operational Variance** and **FX Variance** columns in the target currency, and a small summary above the table shows the totals for all three figures. The Excel export mirrors this: the detail and YTD-totals sheets show converted amounts and the same two extra columns, the Summary sheet's department totals are in the target currency, and the Notes sheet lists the full rate table grouped by year (including which months, if any, were left unconverted).
+
+Try it with the bundled USD sample data ([`sample-data/budget-usd.csv`](sample-data/budget-usd.csv) / [`sample-data/actual-usd.csv`](sample-data/actual-usd.csv)): set **Data currency** to USD, upload those two files, then enable currency reporting with target **TRY** and, in the rate table, use "Apply one rate to all months" to set the budget rate to **32** for the year, then enter monthly actual rates (e.g. **33, 34, 35** for Jan/Feb/Mar) — the `6000` account in January has identical amounts on both sides in USD, so its entire variance in TRY is pure FX, making the split easy to sanity-check. Leave one month's actual rate blank to see how a missing rate is flagged and excluded rather than assumed.
 
 ## Expected input format
 
@@ -135,7 +143,7 @@ Because everything runs client-side, there's no backend to configure and no data
 
 - **v1 is client-side only** — there's no saved history. Re-uploading files starts a fresh comparison every time.
 - The "bad direction" for significant-variance highlighting is a single global setting, not configurable per account or department yet.
-- FX rates are entered manually — there's no live exchange-rate lookup (by design, since the app makes no network calls with your data), and each side gets one rate for the whole analysis (not, say, a different rate per month within a year).
+- FX rates are entered manually, one per calendar month — there's no live exchange-rate lookup (by design, since the app makes no network calls with your data).
 - All rows share a single data currency; multi-currency datasets (different rows already in different currencies) aren't supported in v1.
 - Year over Year currently compares exactly two years at a time; multi-year trends (3+ years) aren't visualized yet.
 - Column mappings aren't saved between sessions — you'll re-map if your file headers change.

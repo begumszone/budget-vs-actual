@@ -1,6 +1,7 @@
 import { CURRENCIES, type CurrencyCode, type FxReportingSettings, type Locale } from '../types';
-import { formatRate } from '../lib/formatters';
 import type { ModeLabels } from '../lib/modeLabels';
+import type { MonthlyRateEntry } from '../lib/monthlyRates';
+import { RateTableEditor } from './RateTableEditor';
 
 interface Props {
   value: FxReportingSettings;
@@ -8,9 +9,10 @@ interface Props {
   dataCurrency: CurrencyCode;
   locale: Locale;
   labels: ModeLabels;
+  rateEntries: MonthlyRateEntry[];
 }
 
-export function FxReportingPanel({ value, onChange, dataCurrency, locale, labels }: Props) {
+export function FxReportingPanel({ value, onChange, dataCurrency, locale, labels, rateEntries }: Props) {
   const sameCurrency = value.targetCurrency === dataCurrency;
 
   return (
@@ -26,45 +28,19 @@ export function FxReportingPanel({ value, onChange, dataCurrency, locale, labels
 
       {value.enabled && (
         <div className="fx-panel__body">
-          <div className="fx-panel__fields">
-            <label className="field-select">
-              Target currency
-              <select
-                value={value.targetCurrency}
-                onChange={(e) => onChange({ ...value, targetCurrency: e.target.value as CurrencyCode })}
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field-select">
-              {labels.baseRateLabel}
-              <input
-                type="number"
-                min={0}
-                step="any"
-                placeholder={`${dataCurrency} → ${value.targetCurrency}`}
-                value={value.baseRate ?? ''}
-                onChange={(e) => onChange({ ...value, baseRate: e.target.value === '' ? null : Number(e.target.value) })}
-              />
-            </label>
-            <label className="field-select">
-              {labels.comparisonRateLabel}
-              <input
-                type="number"
-                min={0}
-                step="any"
-                placeholder={`${dataCurrency} → ${value.targetCurrency}`}
-                value={value.comparisonRate ?? ''}
-                onChange={(e) =>
-                  onChange({ ...value, comparisonRate: e.target.value === '' ? null : Number(e.target.value) })
-                }
-              />
-            </label>
-          </div>
+          <label className="field-select">
+            Target currency
+            <select
+              value={value.targetCurrency}
+              onChange={(e) => onChange({ ...value, targetCurrency: e.target.value as CurrencyCode })}
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
 
           {sameCurrency ? (
             <p className="fx-panel__note">
@@ -74,15 +50,19 @@ export function FxReportingPanel({ value, onChange, dataCurrency, locale, labels
           ) : (
             <>
               <p className="fx-panel__note">
-                Applied rates: 1 {dataCurrency} = {formatRate(value.baseRate, locale)} {value.targetCurrency} (
-                {labels.base}) · 1 {dataCurrency} = {formatRate(value.comparisonRate, locale)} {value.targetCurrency} (
-                {labels.comparison})
-              </p>
-              <p className="fx-panel__note">
                 Convention: the FX effect is measured on <strong>{labels.comparison.toLowerCase()} volume</strong> —
                 it's the difference the rate movement alone would make if the {labels.comparison.toLowerCase()}{' '}
-                amount had been converted at the {labels.base.toLowerCase()} rate instead.
+                amount had been converted at the {labels.base.toLowerCase()} rate instead. Once enabled, every
+                figure on screen and in the export switches to {value.targetCurrency} — nothing stays in{' '}
+                {dataCurrency}.
               </p>
+              <RateTableEditor
+                entries={rateEntries}
+                rates={value.rates}
+                onChange={(rates) => onChange({ ...value, rates })}
+                labels={labels}
+                locale={locale}
+              />
             </>
           )}
         </div>

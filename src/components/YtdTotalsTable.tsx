@@ -3,19 +3,20 @@ import type { CurrencyCode, Locale } from '../types';
 import type { YtdTotalRow } from '../lib/computeYtdTotals';
 import { formatCurrency, formatPercent } from '../lib/formatters';
 import type { ModeLabels } from '../lib/modeLabels';
+import { NoRateCell } from './NoRateCell';
 
 type SortKey = 'variance_percent' | 'variance_amount' | 'account_code';
 
 interface Props {
   rows: YtdTotalRow[];
   locale: Locale;
-  dataCurrency: CurrencyCode;
+  displayCurrency: CurrencyCode;
   fxActive: boolean;
   targetCurrency: CurrencyCode;
   labels: ModeLabels;
 }
 
-export function YtdTotalsTable({ rows, locale, dataCurrency, fxActive, targetCurrency, labels }: Props) {
+export function YtdTotalsTable({ rows, locale, displayCurrency, fxActive, targetCurrency, labels }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('variance_percent');
 
   const sorted = useMemo(() => {
@@ -46,6 +47,12 @@ export function YtdTotalsTable({ rows, locale, dataCurrency, fxActive, targetCur
           </select>
         </label>
       </div>
+      {fxActive && rows.some((r) => r.monthsMissingRate > 0) && (
+        <p className="fx-panel__note">
+          ⚠ Some accounts have months with no rate entered -- their totals only include the months that could be
+          converted (see the ⚠ marker below).
+        </p>
+      )}
       <div className="table-scroll">
         <table className="variance-table">
           <thead>
@@ -69,22 +76,40 @@ export function YtdTotalsTable({ rows, locale, dataCurrency, fxActive, targetCur
               <tr key={row.key} className={row.isSignificant ? `row--significant row--${row.direction}` : undefined}>
                 <td>
                   <div className="account-cell">
-                    <span className="account-cell__code">{row.account_code}</span>
+                    <span className="account-cell__code">
+                      {row.account_code}
+                      {fxActive && row.monthsMissingRate > 0 && (
+                        <span title={`${row.monthsMissingRate} of ${row.monthsPresent} months have no rate entered`}>
+                          {' '}
+                          ⚠
+                        </span>
+                      )}
+                    </span>
                     {row.account_name && <span className="account-cell__name">{row.account_name}</span>}
                   </div>
                 </td>
                 <td>{row.department ?? '—'}</td>
-                <td className="num">{formatCurrency(row.base_amount, locale, dataCurrency)}</td>
-                <td className="num">{formatCurrency(row.comparison_amount, locale, dataCurrency)}</td>
-                <td className="num">{formatCurrency(row.variance_amount, locale, dataCurrency)}</td>
+                <td className="num">{formatCurrency(row.base_amount, locale, displayCurrency)}</td>
+                <td className="num">{formatCurrency(row.comparison_amount, locale, displayCurrency)}</td>
+                <td className="num">{formatCurrency(row.variance_amount, locale, displayCurrency)}</td>
                 <td className="num">{formatPercent(row.variance_percent, locale)}</td>
                 {fxActive && (
                   <>
                     <td className="num">
-                      {row.fx ? formatCurrency(row.fx.operationalVarianceTarget, locale, targetCurrency) : 'N/A'}
+                      <NoRateCell
+                        value={row.fx?.operationalVarianceTarget ?? null}
+                        missingRate={!row.fx}
+                        locale={locale}
+                        currency={targetCurrency}
+                      />
                     </td>
                     <td className="num">
-                      {row.fx ? formatCurrency(row.fx.fxVarianceTarget, locale, targetCurrency) : 'N/A'}
+                      <NoRateCell
+                        value={row.fx?.fxVarianceTarget ?? null}
+                        missingRate={!row.fx}
+                        locale={locale}
+                        currency={targetCurrency}
+                      />
                     </td>
                   </>
                 )}

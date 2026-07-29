@@ -33,6 +33,7 @@ import { matchBaseAndComparison, buildFromDualAmountRows } from './lib/matchRows
 import { enrichRowsWithFx, isFxActive } from './lib/enrichRowsWithFx';
 import { computeYtdTotals } from './lib/computeYtdTotals';
 import { extractAvailableYears, splitByYear } from './lib/yoyPeriods';
+import { detectMonthlyRateEntries } from './lib/monthlyRates';
 import { getModeLabels } from './lib/modeLabels';
 import { makeMonthFormatter } from './lib/formatPeriod';
 
@@ -40,8 +41,7 @@ const DEFAULT_THRESHOLD: ThresholdSettings = { percent: 10, increaseIsBad: true 
 const DEFAULT_FX: FxReportingSettings = {
   enabled: false,
   targetCurrency: 'USD',
-  baseRate: null,
-  comparisonRate: null,
+  rates: {},
 };
 const DEFAULT_YEARS: YearSelection = { baseYear: null, comparisonYear: null };
 
@@ -97,17 +97,20 @@ export default function App() {
     return matchBaseAndComparison(mappedData.baseRows, mappedData.comparisonRows, threshold);
   }, [mappedData, threshold]);
 
-  const enrichedRows = useMemo(
-    () => enrichRowsWithFx(varianceRows, fx, dataCurrency),
-    [varianceRows, fx, dataCurrency],
+  const rateEntries = useMemo(
+    () => detectMonthlyRateEntries(varianceRows, analysisMode, yearSelection),
+    [varianceRows, analysisMode, yearSelection],
   );
 
-  const ytdTotals = useMemo(
-    () => computeYtdTotals(varianceRows, threshold, fx, dataCurrency),
-    [varianceRows, threshold, fx, dataCurrency],
+  const enrichedRows = useMemo(
+    () => enrichRowsWithFx(varianceRows, fx, dataCurrency, analysisMode, yearSelection, threshold),
+    [varianceRows, fx, dataCurrency, analysisMode, yearSelection, threshold],
   );
+
+  const ytdTotals = useMemo(() => computeYtdTotals(enrichedRows, threshold), [enrichedRows, threshold]);
 
   const fxActive = isFxActive(fx, dataCurrency);
+  const displayCurrency = fxActive ? fx.targetCurrency : dataCurrency;
 
   function handleReset() {
     setStage('upload');
@@ -275,24 +278,32 @@ export default function App() {
                 fx={fx}
                 labels={labels}
                 formatMonth={formatMonth}
+                rateEntries={rateEntries}
               />
             </div>
             <section className="fx-panel-section">
-              <FxReportingPanel value={fx} onChange={setFx} dataCurrency={dataCurrency} locale={locale} labels={labels} />
+              <FxReportingPanel
+                value={fx}
+                onChange={setFx}
+                dataCurrency={dataCurrency}
+                locale={locale}
+                labels={labels}
+                rateEntries={rateEntries}
+              />
             </section>
             {fxActive && <FxSummary rows={enrichedRows} targetCurrency={fx.targetCurrency} locale={locale} />}
-            <SummaryCharts rows={varianceRows} locale={locale} dataCurrency={dataCurrency} labels={labels} />
+            <SummaryCharts rows={enrichedRows} locale={locale} displayCurrency={displayCurrency} labels={labels} />
             <TrendChart
-              rows={varianceRows}
+              rows={enrichedRows}
               locale={locale}
-              dataCurrency={dataCurrency}
+              displayCurrency={displayCurrency}
               labels={labels}
               formatMonth={formatMonth}
             />
             <VarianceTable
               rows={enrichedRows}
               locale={locale}
-              dataCurrency={dataCurrency}
+              displayCurrency={displayCurrency}
               fxActive={fxActive}
               targetCurrency={fx.targetCurrency}
               labels={labels}
@@ -301,15 +312,15 @@ export default function App() {
             <YtdTotalsTable
               rows={ytdTotals}
               locale={locale}
-              dataCurrency={dataCurrency}
+              displayCurrency={displayCurrency}
               fxActive={fxActive}
               targetCurrency={fx.targetCurrency}
               labels={labels}
             />
             <UnmatchedRows
-              rows={varianceRows}
+              rows={enrichedRows}
               locale={locale}
-              dataCurrency={dataCurrency}
+              displayCurrency={displayCurrency}
               labels={labels}
               formatMonth={formatMonth}
             />
