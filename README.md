@@ -49,6 +49,17 @@ Sometimes the base and comparison periods were valued at different FX rates, and
 - You can **paste a column of rates copied from Excel** directly into the first cell of a column; it fills downward through the remaining months.
 - **A month with no rate is flagged, never assumed to be 1.0.** Its cells show "No rate" instead of a number, and it's excluded from converted totals (rather than silently guessing) — check the rate table if a total looks lower than expected.
 
+### Rate quote convention (which way does the number go?)
+
+Every rate field is labeled with the exact quote it expects, generated from your two currencies, e.g. **"1 USD = ? TRY"**. Type the number exactly as you'd see it quoted in the market — you never need to work out which way to divide.
+
+The label always anchors on whichever of the two currencies is conventionally quoted as "1 unit" against the other (`EUR` > `GBP` > `USD` > `TRY`, matching how these pairs actually trade — nobody quotes "1 TRY = 0.024 USD"). Critically, **the label for a given currency *pair* is the same no matter which one is your data currency and which is the target** — only the arithmetic direction the app applies internally changes:
+
+- Data currency **TRY**, target **USD**, rate entered as `42` (i.e. "1 USD = 42 TRY"): the app **divides** — ₺2,095,000 becomes $2,095,000 ÷ 42 ≈ $49,881.
+- Data currency **USD**, target **TRY**, the *same* rate `42`: the app **multiplies** — $100 becomes $100 × 42 = ₺4,200.
+
+Both directions use the identical number you'd read off a rate sheet; converting one way and back with the same rate returns you to the original amount. This is covered by automated tests (`src/lib/fxQuote.test.ts`, `src/lib/calculateFxVariance.test.ts` — run with `npm test`) that check both directions are exact reciprocals of each other, using the TRY/USD scenario above among others.
+
 For each row with both rates present, the total variance in the target currency is split into:
 
 ```
@@ -56,6 +67,8 @@ Total variance       = comparison_local × r_comparison − base_local × r_base
 Operational variance = (comparison_local − base_local) × r_base
 FX variance          = comparison_local × (r_comparison − r_base)
 ```
+
+Here `r_base` and `r_comparison` are the *effective* target-per-1-data-unit multipliers — i.e. the number you typed if your data currency is the quote's anchor, or its reciprocal if the target currency is the anchor. You never compute this yourself; the app derives it from what you entered and the quote label it showed you.
 
 `Operational variance + FX variance` always equals `Total variance` exactly for every convertible row — the app runs a reconciliation check on every row and throws if it doesn't add up, so this isn't just a documentation promise.
 
@@ -65,7 +78,7 @@ If you pick a target currency that's the same as your data currency, there's not
 
 The variance table (and the Total-by-account roll-up) gain **Operational Variance** and **FX Variance** columns in the target currency, and a small summary above the table shows the totals for all three figures. The Excel export mirrors this: the detail and YTD-totals sheets show converted amounts and the same two extra columns, the Summary sheet's department totals are in the target currency, and the Notes sheet lists the full rate table grouped by year (including which months, if any, were left unconverted).
 
-Try it with the bundled USD sample data ([`sample-data/budget-usd.csv`](sample-data/budget-usd.csv) / [`sample-data/actual-usd.csv`](sample-data/actual-usd.csv)): set **Data currency** to USD, upload those two files, then enable currency reporting with target **TRY** and, in the rate table, use "Apply one rate to all months" to set the budget rate to **32** for the year, then enter monthly actual rates (e.g. **33, 34, 35** for Jan/Feb/Mar) — the `6000` account in January has identical amounts on both sides in USD, so its entire variance in TRY is pure FX, making the split easy to sanity-check. Leave one month's actual rate blank to see how a missing rate is flagged and excluded rather than assumed.
+Try it with the bundled USD sample data ([`sample-data/budget-usd.csv`](sample-data/budget-usd.csv) / [`sample-data/actual-usd.csv`](sample-data/actual-usd.csv)): set **Data currency** to USD, upload those two files, then enable currency reporting with target **TRY**. The rate table will label its columns "1 USD = ? TRY" — use "Apply one rate to all months" to set the budget rate to **32** for the year, then enter monthly actual rates (e.g. **33, 34, 35** for Jan/Feb/Mar) — the `6000` account in January has identical amounts on both sides in USD, so its entire variance in TRY is pure FX, making the split easy to sanity-check. Leave one month's actual rate blank to see how a missing rate is flagged and excluded rather than assumed. Then try it the other way: switch **Data currency** to TRY and target to USD instead — the label stays "1 USD = ? TRY", but typing the same `32` now correctly divides instead of multiplies.
 
 ## Expected input format
 
@@ -121,6 +134,12 @@ To build for production:
 ```bash
 npm run build
 npm run preview
+```
+
+To run the unit tests (currency conversion and FX reconciliation logic):
+
+```bash
+npm test
 ```
 
 ## Deploying

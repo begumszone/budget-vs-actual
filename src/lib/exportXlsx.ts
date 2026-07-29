@@ -5,6 +5,7 @@ import { isFxActive } from './enrichRowsWithFx';
 import type { YtdTotalRow } from './computeYtdTotals';
 import type { ModeLabels } from './modeLabels';
 import type { MonthlyRateEntry } from './monthlyRates';
+import { formatQuoteLabel } from './fxQuote';
 
 function statusLabel(status: VarianceRow['status'], labels: ModeLabels): string {
   if (status === 'base-only') return `${labels.baseOnlyLabel} (no ${labels.comparison.toLowerCase()})`;
@@ -221,13 +222,17 @@ export async function exportVarianceWorkbook(
   });
   notesSheet.addRow({ note: `Total rows: ${rows.length}` });
   if (fxActive) {
+    const quoteLabel = formatQuoteLabel(dataCurrency, fx.targetCurrency);
     notesSheet.addRow({ note: '' });
     notesSheet.addRow({ note: `Currency reporting: everything above is in ${fx.targetCurrency}` });
     notesSheet.addRow({
       note: `Convention: FX variance is measured on ${labels.comparison.toLowerCase()} volume (comparison_local x (comparison_rate - base_rate)); operational variance is the ${labels.base.toLowerCase()}/${labels.comparison.toLowerCase()} difference valued at the ${labels.base.toLowerCase()} rate. Operational + FX = Total variance for every row that has a rate.`,
     });
+    notesSheet.addRow({
+      note: `Rate quote convention: every rate below is entered as ${quoteLabel} -- the same number regardless of which of the two is the data currency and which is the target.`,
+    });
     notesSheet.addRow({ note: '' });
-    notesSheet.addRow({ note: 'Rate table (per month, grouped by year)' });
+    notesSheet.addRow({ note: `Rate table (per month, grouped by year, quoted as ${quoteLabel})` });
 
     const byYear = new Map<number, MonthlyRateEntry[]>();
     for (const entry of rateEntries) {

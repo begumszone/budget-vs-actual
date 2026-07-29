@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import type { Locale, MonthlyRate } from '../types';
+import type { CurrencyCode, Locale, MonthlyRate } from '../types';
 import type { MonthlyRateEntry } from '../lib/monthlyRates';
 import type { ModeLabels } from '../lib/modeLabels';
 import { parseLocaleNumber } from '../lib/parseNumber';
+import { formatQuoteLabel } from '../lib/fxQuote';
 
 interface Props {
   entries: MonthlyRateEntry[];
@@ -10,6 +11,8 @@ interface Props {
   onChange: (rates: Record<string, MonthlyRate>) => void;
   labels: ModeLabels;
   locale: Locale;
+  dataCurrency: CurrencyCode;
+  targetCurrency: CurrencyCode;
 }
 
 function monthName(entry: MonthlyRateEntry, locale: Locale): string {
@@ -62,6 +65,7 @@ function YearGroup({
   onChange,
   labels,
   locale,
+  quoteLabel,
 }: {
   year: number;
   groupEntries: MonthlyRateEntry[];
@@ -69,6 +73,7 @@ function YearGroup({
   onChange: (rates: Record<string, MonthlyRate>) => void;
   labels: ModeLabels;
   locale: Locale;
+  quoteLabel: string;
 }) {
   const [applyAllValue, setApplyAllValue] = useState('');
   const hasBase = groupEntries.some((e) => e.appliesTo !== 'comparison');
@@ -116,14 +121,16 @@ function YearGroup({
         <h4>{year}</h4>
         {hasBase && (
           <div className="rate-year-group__apply-all">
-            <span>Apply one {labels.baseRateLabel.toLowerCase()} to all {baseColumnEntries.length} months:</span>
+            <span>
+              Apply one {labels.baseRateLabel.toLowerCase()} ({quoteLabel}) to all {baseColumnEntries.length} months:
+            </span>
             <input
               type="number"
               min={0}
               step="any"
               value={applyAllValue}
               onChange={(e) => setApplyAllValue(e.target.value)}
-              placeholder="Rate"
+              placeholder={quoteLabel}
             />
             <button type="button" className="btn btn--ghost btn--small" onClick={applyBaseRateToAll}>
               Apply
@@ -135,8 +142,8 @@ function YearGroup({
         <thead>
           <tr>
             <th>Month</th>
-            {hasBase && <th>{labels.baseRateLabel}</th>}
-            {hasComparison && <th>{labels.comparisonRateLabel}</th>}
+            {hasBase && <th>{labels.baseRateLabel} ({quoteLabel})</th>}
+            {hasComparison && <th>{labels.comparisonRateLabel} ({quoteLabel})</th>}
           </tr>
         </thead>
         <tbody>
@@ -150,7 +157,7 @@ function YearGroup({
                       value={rates[entry.key]?.baseRate ?? null}
                       onChange={(v) => onChange(setRateField(rates, entry.key, 'baseRate', v))}
                       onPasteColumn={(text) => pasteIntoColumn(baseColumnEntries, 'baseRate', entry.key, text)}
-                      placeholder="Rate"
+                      placeholder={quoteLabel}
                     />
                   ) : (
                     <span className="rate-table__na">—</span>
@@ -166,7 +173,7 @@ function YearGroup({
                       onPasteColumn={(text) =>
                         pasteIntoColumn(comparisonColumnEntries, 'comparisonRate', entry.key, text)
                       }
-                      placeholder="Rate"
+                      placeholder={quoteLabel}
                     />
                   ) : (
                     <span className="rate-table__na">—</span>
@@ -181,7 +188,9 @@ function YearGroup({
   );
 }
 
-export function RateTableEditor({ entries, rates, onChange, labels, locale }: Props) {
+export function RateTableEditor({ entries, rates, onChange, labels, locale, dataCurrency, targetCurrency }: Props) {
+  const quoteLabel = formatQuoteLabel(dataCurrency, targetCurrency);
+
   if (entries.length === 0) {
     return <p className="fx-panel__note">Map your data first -- rate entry rows appear once months are detected.</p>;
   }
@@ -195,6 +204,11 @@ export function RateTableEditor({ entries, rates, onChange, labels, locale }: Pr
 
   return (
     <div className="rate-table-editor">
+      <p className="fx-panel__note">
+        Every rate below is quoted as <strong>{quoteLabel}</strong> — enter the number exactly as you'd see it
+        quoted (e.g. an actual USD/TRY rate around 30-40), regardless of which side is your data currency. The
+        column headers repeat this so you can never enter it backwards.
+      </p>
       <p className="fx-panel__note">
         Rates apply per calendar month. Leave a month blank to exclude it from the converted figures -- it will be
         flagged in the table and export, never assumed to be 1.0. You can paste a column of rates copied from Excel
@@ -211,6 +225,7 @@ export function RateTableEditor({ entries, rates, onChange, labels, locale }: Pr
             onChange={onChange}
             labels={labels}
             locale={locale}
+            quoteLabel={quoteLabel}
           />
         ))}
     </div>

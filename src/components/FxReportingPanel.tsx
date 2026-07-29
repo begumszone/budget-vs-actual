@@ -62,6 +62,8 @@ export function FxReportingPanel({ value, onChange, dataCurrency, locale, labels
                 onChange={(rates) => onChange({ ...value, rates })}
                 labels={labels}
                 locale={locale}
+                dataCurrency={dataCurrency}
+                targetCurrency={value.targetCurrency}
               />
             </>
           )}

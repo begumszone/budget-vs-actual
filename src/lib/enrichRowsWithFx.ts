@@ -1,7 +1,16 @@
-import type { AnalysisMode, FxDecomposition, FxReportingSettings, ThresholdSettings, VarianceRow, YearSelection } from '../types';
+import type {
+  AnalysisMode,
+  CurrencyCode,
+  FxDecomposition,
+  FxReportingSettings,
+  ThresholdSettings,
+  VarianceRow,
+  YearSelection,
+} from '../types';
 import { calculateFxDecomposition } from './calculateFxVariance';
 import { calculateVariance } from './calculateVariance';
 import { getRatesForRow } from './monthlyRates';
+import { getEffectiveMultiplier } from './fxQuote';
 
 export interface EnrichedVarianceRow extends VarianceRow {
   fx: FxDecomposition | null;
@@ -39,7 +48,7 @@ export function isFxActive(fx: FxReportingSettings, dataCurrency: string): boole
 export function enrichRowsWithFx(
   rows: VarianceRow[],
   fx: FxReportingSettings,
-  dataCurrency: string,
+  dataCurrency: CurrencyCode,
   mode: AnalysisMode,
   years: YearSelection,
   threshold: ThresholdSettings,
@@ -66,13 +75,29 @@ export function enrichRowsWithFx(
     const baseRateMissing = row.base_amount !== null && !(baseRate !== null && baseRate > 0);
     const comparisonRateMissing = row.comparison_amount !== null && !(comparisonRate !== null && comparisonRate > 0);
 
-    const displayBase = !baseRateMissing && row.base_amount !== null ? row.base_amount * (baseRate as number) : null;
-    const displayComparison =
-      !comparisonRateMissing && row.comparison_amount !== null
-        ? row.comparison_amount * (comparisonRate as number)
+    // Rates are entered against the pair's quote convention (see fxQuote.ts),
+    // not necessarily as a direct target-per-data multiplier -- convert to an
+    // effective multiplier before doing any arithmetic with them.
+    const baseMultiplier =
+      baseRate !== null && baseRate > 0 ? getEffectiveMultiplier(baseRate, dataCurrency, fx.targetCurrency) : null;
+    const comparisonMultiplier =
+      comparisonRate !== null && comparisonRate > 0
+        ? getEffectiveMultiplier(comparisonRate, dataCurrency, fx.targetCurrency)
         : null;
 
-    const fxDecomposition = calculateFxDecomposition(row.base_amount, row.comparison_amount, baseRate, comparisonRate);
+    const displayBase =
+      !baseRateMissing && row.base_amount !== null ? row.base_amount * (baseMultiplier as number) : null;
+    const displayComparison =
+      !comparisonRateMissing && row.comparison_amount !== null
+        ? row.comparison_amount * (comparisonMultiplier as number)
+        : null;
+
+    const fxDecomposition = calculateFxDecomposition(
+      row.base_amount,
+      row.comparison_amount,
+      baseMultiplier,
+      comparisonMultiplier,
+    );
 
     let displayVariance: number | null = null;
     let displayVariancePercent: number | null = null;
