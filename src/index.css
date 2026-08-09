@@ -423,6 +423,27 @@ section.mapping-panel,
   font-variant-numeric: tabular-nums;
 }
 
+.headline-stats--empty {
+  display: block;
+  background: var(--surface-1);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+
+.headline-stats__empty-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.headline-stats__note {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--status-critical);
+}
+
 .headline-stats__tile--bad .headline-stats__value,
 .headline-stats__tile--bad .headline-stats__meta {
   color: var(--status-critical);

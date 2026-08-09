@@ -23,17 +23,39 @@ export function HeadlineStats({ rows, locale, displayCurrency, labels, threshold
     let base = 0;
     let comparison = 0;
     let significant = 0;
+    let converted = 0;
+    let blockedByMissingRate = 0;
     for (const row of rows) {
+      const rowBlocked = row.baseRateMissing || row.comparisonRateMissing;
+      if (rowBlocked) {
+        blockedByMissingRate += 1;
+      } else {
+        converted += 1;
+      }
       base += row.displayBase ?? 0;
       comparison += row.displayComparison ?? 0;
       if (row.displayIsSignificant) significant += 1;
     }
     const variance = comparison - base;
     const variancePercent = base === 0 ? null : (variance / Math.abs(base)) * 100;
-    return { base, comparison, variance, variancePercent, significant };
+    return { base, comparison, variance, variancePercent, significant, converted, blockedByMissingRate };
   }, [rows]);
 
   if (rows.length === 0) return null;
+
+  // With FX reporting on but no rates entered yet, every amount is
+  // unconvertible. Summing those nulls to 0 would print a confident
+  // "0" and read as "your data vanished" -- say what is actually true
+  // instead, the same way the tables print "No rate".
+  if (stats.converted === 0) {
+    return (
+      <section className="headline-stats headline-stats--empty">
+        <p className="headline-stats__empty-note">
+          Enter the monthly exchange rates below to see totals — {rows.length} rows are loaded and waiting.
+        </p>
+      </section>
+    );
+  }
 
   // Colour by whether the movement is *bad*, per the user's chosen bad
   // direction -- not by its arithmetic sign. On a revenue line, coming in
@@ -63,8 +85,18 @@ export function HeadlineStats({ rows, locale, displayCurrency, labels, threshold
       <div className="headline-stats__tile">
         <span className="headline-stats__label">Flagged lines</span>
         <span className="headline-stats__value">{stats.significant}</span>
-        <span className="headline-stats__meta">of {rows.length} rows</span>
+        <span className="headline-stats__meta">
+          {stats.blockedByMissingRate > 0
+            ? `of ${stats.converted} converted rows`
+            : `of ${rows.length} rows`}
+        </span>
       </div>
+      {stats.blockedByMissingRate > 0 && (
+        <p className="headline-stats__note">
+          ⚠ {stats.blockedByMissingRate} of {rows.length} rows are excluded from these totals — no exchange rate
+          entered for their month yet.
+        </p>
+      )}
     </section>
   );
 }

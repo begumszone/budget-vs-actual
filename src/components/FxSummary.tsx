@@ -44,7 +44,10 @@ export function FxSummary({ rows, targetCurrency, locale }: Props) {
           <span className="fx-summary__value">{formatCurrency(totals.fx, locale, targetCurrency)}</span>
         </div>
       </div>
-      <p className="fx-summary__hint">Operational + FX reconciles exactly to total variance, row by row.</p>
+      <p className="fx-summary__hint">
+        Operational + FX reconciles exactly to total variance, row by row. Covers the {totals.count} matched rows
+        only — a line present on just one side has nothing to decompose.
+      </p>
     </section>
   );
 }
