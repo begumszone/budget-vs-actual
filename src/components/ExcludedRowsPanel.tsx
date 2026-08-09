@@ -24,6 +24,7 @@ interface Props {
 const REASON_TEXT: Record<ExclusionReason, string> = {
   'no-account-code': 'No account code — reads as a section heading or roll-up',
   'total-label': 'Labelled as a total',
+  'parent-rollup': 'Parent account — equals the sum of its sub-accounts',
 };
 
 /**
@@ -39,7 +40,7 @@ export function ExcludedRowsPanel({ excluded, locale, dataCurrency, included, on
   return (
     <section className="unmatched-section">
       <button className="unmatched-toggle" onClick={() => setOpen((o) => !o)}>
-        {open ? '▾' : '▸'} {excluded.length} subtotal / heading row{excluded.length === 1 ? '' : 's'}{' '}
+        {open ? '▾' : '▸'} {excluded.length} roll-up / heading row{excluded.length === 1 ? '' : 's'}{' '}
         {included ? 'included' : 'excluded'} to avoid double counting
       </button>
 

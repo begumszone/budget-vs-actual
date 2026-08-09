@@ -40,6 +40,7 @@ import { extractAvailableYears, splitByYear } from './lib/yoyPeriods';
 import { detectMonthlyRateEntries } from './lib/monthlyRates';
 import { defaultSelectionFor, resolveSheet } from './lib/resolveSheet';
 import { partitionSubtotals } from './lib/detectSubtotals';
+import { findRollupRows } from './lib/detectRollups';
 import { SheetSetup } from './components/SheetSetup';
 import { ExcludedRowsPanel, type ExcludedRowView } from './components/ExcludedRowsPanel';
 import { getModeLabels } from './lib/modeLabels';
@@ -135,19 +136,30 @@ export default function App() {
   const { varianceRows, excludedRows } = useMemo(() => {
     if (!mappedData) return { varianceRows: [], excludedRows: [] as ExcludedRowView[] };
 
-    const collect = <T extends { account_code: string; account_name: string }>(
+    /**
+     * Two passes, because a file can hide its roll-ups two different ways:
+     * an uncoded "TOPLAM" line, and a coded parent account that simply
+     * equals the sum of its children. Both double-count if left in.
+     */
+    const collect = <T extends { account_code: string; account_name: string; department: string | null; month: string }>(
       rows: T[],
+      amountsOf: (row: T) => (number | null)[],
       toView: (row: T) => Omit<ExcludedRowView, 'reason'>,
     ) => {
       const { kept, excluded } = partitionSubtotals(rows);
+      const rollups = findRollupRows(kept, amountsOf);
+      const views = [
+        ...excluded.map((e) => ({ ...toView(e.row), reason: e.reason })),
+        ...[...rollups].map((r) => ({ ...toView(r), reason: 'parent-rollup' as const })),
+      ];
       return {
-        rows: includeSubtotals ? rows : kept,
-        views: excluded.map((e) => ({ ...toView(e.row), reason: e.reason })),
+        rows: includeSubtotals ? rows : kept.filter((r) => !rollups.has(r)),
+        views,
       };
     };
 
     if (mappedData.mode === 'single-file') {
-      const { rows, views } = collect(mappedData.rows, (r) => ({
+      const { rows, views } = collect(mappedData.rows, (r) => [r.budget_amount, r.actual_amount], (r) => ({
         account_code: r.account_code,
         account_name: r.account_name,
         department: r.department,
@@ -166,16 +178,16 @@ export default function App() {
     });
 
     if (mappedData.mode === 'two-files') {
-      const b = collect(mappedData.budgetRows, toMappedView);
-      const a = collect(mappedData.actualRows, toMappedView);
+      const b = collect(mappedData.budgetRows, (r) => [r.amount], toMappedView);
+      const a = collect(mappedData.actualRows, (r) => [r.amount], toMappedView);
       return {
         varianceRows: matchBaseAndComparison(b.rows, a.rows, threshold),
         excludedRows: [...b.views, ...a.views],
       };
     }
 
-    const base = collect(mappedData.baseRows, toMappedView);
-    const comparison = collect(mappedData.comparisonRows, toMappedView);
+    const base = collect(mappedData.baseRows, (r) => [r.amount], toMappedView);
+    const comparison = collect(mappedData.comparisonRows, (r) => [r.amount], toMappedView);
     return {
       varianceRows: matchBaseAndComparison(base.rows, comparison.rows, threshold),
       excludedRows: [...base.views, ...comparison.views],

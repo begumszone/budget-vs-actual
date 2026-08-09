@@ -20,7 +20,7 @@ const TOTAL_TOKENS = new Set([
 const TOTAL_WORD_RE =
   /(^|[\s\-–—:/(])(total|totals|subtotal|sub-total|grand total|toplam|toplamı|ara toplam|genel toplam|yekun|yekûn)([\s\-–—:/)]|$)/i;
 
-export type ExclusionReason = 'no-account-code' | 'total-label';
+export type ExclusionReason = 'no-account-code' | 'total-label' | 'parent-rollup';
 
 export interface ExcludedRow<T = AccountLike> {
   row: T;

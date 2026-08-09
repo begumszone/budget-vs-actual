@@ -91,11 +91,23 @@ Real budget files are messy, so the tool is built to open them as they come out 
 - **Months across the top or down a column.** Most company budgets put one column per month (`Jan-26`, `Feb-26`, …). The tool detects that layout, asks you to confirm which columns are periods, and reshapes it internally. A file with a single `Period` column works too — pick whichever matches your file.
 - **Title and preamble rows.** Exports usually start with the company name, a report title and a blank row before the real header. The header row is detected automatically, and you can correct it from a dropdown that previews each row.
 - **Multiple worksheets.** The sheet that most looks like data is selected by default (so a cover sheet doesn't win), and you can switch to any other sheet.
-- **Subtotal and section rows.** `TOTAL REVENUE`, `ARA TOPLAM`, `GENEL TOPLAM` and unlabelled section headings are separated out so they cannot double-count — on the bundled sample, including them would exactly double every figure. They are listed in their own panel with the reason, and a switch puts them back if a genuine account was caught. An account legitimately named `Total Rewards Program` is *not* removed.
+- **Subtotal and section rows.** `TOTAL REVENUE`, `ARA TOPLAM`, `GENEL TOPLAM` and unlabelled section headings are separated out so they cannot double-count — on the bundled sample, including them would exactly double every figure. An account legitimately named `Total Rewards Program` is *not* removed.
+- **Hierarchical charts of accounts.** Ledger exports usually print the parent account above its sub-accounts:
+
+  | | | |
+  |---|---|---|
+  | `770` | Genel Yönetim Giderleri | 100,000 |
+  | `770.01` | Personel Giderleri | 70,000 |
+  | `770.02` | Kira Giderleri | 20,000 |
+  | `770.03` | Kırtasiye Giderleri | 10,000 |
+
+  Adding those four rows counts the money twice. The parent carries a real account code and an ordinary name, so no naming rule can catch it — the tool checks the arithmetic instead: within the same department and month, a line whose every amount equals the sum of the lines directly beneath it is a roll-up, and is set aside. Because the numbers decide, a parent that carries postings of its *own* on top of its children (so the figures don't tie) is correctly left alone, and so is a flat chart of accounts. Codes separated by `.`, `-`, `/`, `_` and plain numeric extensions (`770` → `77001`) are all recognised.
+
+  Nothing is ever removed quietly. Every line set aside — subtotal, section heading or parent roll-up — is listed in its own panel with the reason, and one switch puts them all back if the detection got your file wrong.
 - **Your column names.** `GL Code`, `Hesap Kodu`, `Account #` — headers are auto-matched to the fields the tool needs and every guess is editable.
 - **Number formats.** `1,234.56`, `1.234,56`, `(1.234)` and currency symbols all parse.
 
-**What it still needs from you:** each line must have a period it belongs to and an amount. Rows with no recognisable period are skipped. Hierarchical account trees are treated as a flat list of accounts.
+**What it still needs from you:** each line must have a period it belongs to and an amount. Rows with no recognisable period are skipped.
 
 The minimum shape, once mapped:
 
@@ -113,7 +125,7 @@ The minimum shape, once mapped:
 
 ### Sample files
 
-- [`sample-data/company-budget-pack.xlsx`](sample-data/company-budget-pack.xlsx) — **the realistic one.** A three-sheet management pack with a cover sheet, title rows, months across the top, section headings and subtotals in English and Turkish. Use `Budget 2026` as the budget and `Actuals 2026` as the actual.
+- [`sample-data/company-budget-pack.xlsx`](sample-data/company-budget-pack.xlsx) — **the realistic one.** A three-sheet management pack with a cover sheet, title rows, months across the top, section headings and subtotals in English and Turkish, and a hierarchical `770` block with its sub-accounts. Use `Budget 2026` as the budget and `Actuals 2026` as the actual.
 - [`sample-data/budget.csv`](sample-data/budget.csv) / [`sample-data/actual.csv`](sample-data/actual.csv) — tidy long-format pair, also loaded by the **Try it with sample data** button.
 - [`sample-data/budget-usd.csv`](sample-data/budget-usd.csv) / [`sample-data/actual-usd.csv`](sample-data/actual-usd.csv) — USD-denominated, for the currency-reporting feature.
 - [`sample-data/actuals-2yr.csv`](sample-data/actuals-2yr.csv) — two years of actuals for Year over Year, including a new and a discontinued account.
