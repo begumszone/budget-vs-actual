@@ -28,12 +28,21 @@ export function TrendChart({ rows, locale, displayCurrency, labels, formatMonth 
   const dark = usePrefersDark();
   const palette = getChartPalette(dark);
 
+  /**
+   * A month with no exchange rate cannot be converted, so its rows carry no
+   * displayable figure. Summing those as zero would draw the line straight
+   * down to the axis and read as a collapse in trading. Leave the point as
+   * null instead: Recharts breaks the line there, which is what a gap in the
+   * data actually looks like.
+   */
   const data = useMemo(() => {
-    const months = new Map<string, { month: string; base: number; comparison: number }>();
+    const months = new Map<string, { month: string; base: number | null; comparison: number | null }>();
     for (const row of rows) {
-      const bucket = months.get(row.month) ?? { month: row.month, base: 0, comparison: 0 };
-      bucket.base += row.displayBase ?? 0;
-      bucket.comparison += row.displayComparison ?? 0;
+      const bucket = months.get(row.month) ?? { month: row.month, base: null, comparison: null };
+      if (row.displayBase !== null) bucket.base = (bucket.base ?? 0) + row.displayBase;
+      if (row.displayComparison !== null) {
+        bucket.comparison = (bucket.comparison ?? 0) + row.displayComparison;
+      }
       months.set(row.month, bucket);
     }
     return [...months.values()].sort((a, b) => a.month.localeCompare(b.month));

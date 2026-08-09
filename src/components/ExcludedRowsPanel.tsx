@@ -28,6 +28,17 @@ const REASON_TEXT: Record<ExclusionReason, string> = {
 };
 
 /**
+ * Order the list so the least obvious exclusions are read first. A row with
+ * no account code is plainly a heading; a parent account that looks exactly
+ * like any other coded account is the one worth checking, so it leads.
+ */
+const REASON_ORDER: Record<ExclusionReason, number> = {
+  'parent-rollup': 0,
+  'total-label': 1,
+  'no-account-code': 2,
+};
+
+/**
  * Roll-up rows are excluded so they cannot double-count, but never
  * silently: this shows every excluded line, why, and offers a switch to
  * put them all back if the detection got it wrong for a given file.
@@ -36,6 +47,13 @@ export function ExcludedRowsPanel({ excluded, locale, dataCurrency, included, on
   const [open, setOpen] = useState(false);
 
   if (excluded.length === 0) return null;
+
+  const ordered = [...excluded].sort(
+    (a, b) =>
+      REASON_ORDER[a.reason] - REASON_ORDER[b.reason] ||
+      a.account_code.localeCompare(b.account_code) ||
+      a.month.localeCompare(b.month),
+  );
 
   return (
     <section className="unmatched-section">
@@ -62,7 +80,7 @@ export function ExcludedRowsPanel({ excluded, locale, dataCurrency, included, on
                 </tr>
               </thead>
               <tbody>
-                {excluded.map((item, i) => (
+                {ordered.map((item, i) => (
                   <tr key={`${item.account_code}-${item.month}-${i}`}>
                     <td>
                       <div className="account-cell">
