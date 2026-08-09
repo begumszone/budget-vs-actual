@@ -15,6 +15,8 @@ import type {
 import { FileUpload, type UploadResult } from './components/FileUpload';
 import { SingleAmountFileMapper, DualAmountFileMapper } from './components/ColumnMapper';
 import { AnalysisModeSwitch } from './components/AnalysisModeSwitch';
+import { StepIndicator } from './components/StepIndicator';
+import { HeadlineStats } from './components/HeadlineStats';
 import { YearRangeSelector } from './components/YearRangeSelector';
 import { ThresholdControl } from './components/ThresholdControl';
 import { LocaleToggle } from './components/LocaleToggle';
@@ -199,6 +201,7 @@ export default function App() {
 
       <div className="mode-switch-row">
         <AnalysisModeSwitch value={analysisMode} onChange={handleAnalysisModeChange} />
+        <StepIndicator stage={stage} />
       </div>
 
       <main className="app-main">
@@ -267,6 +270,13 @@ export default function App() {
 
         {stage === 'results' && (
           <section className="results-panel">
+            <HeadlineStats
+              rows={enrichedRows}
+              locale={locale}
+              displayCurrency={displayCurrency}
+              labels={labels}
+              threshold={threshold}
+            />
             <div className="results-toolbar">
               <ThresholdControl value={threshold} onChange={setThreshold} labels={labels} />
               <ExportButton
