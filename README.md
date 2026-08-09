@@ -4,7 +4,9 @@ A small, client-side web app for comparing two periods of financial data and ins
 
 Upload your data, map your columns, and the tool matches rows by account code, month, and department, calculates the variance in amount and percent, flags anything that crosses a threshold you control, and lets you export the result back to Excel — all in your browser. Nothing is uploaded to a server, which makes it safe to use with real financial data.
 
-> _Screenshot / GIF coming soon._
+![Results screen: variance charts and table for a Budget vs Actual comparison](docs/screenshots/results.png)
+
+<sub>Column mapping step, with auto-suggested field guesses: see [docs/screenshots/column-mapping.png](docs/screenshots/column-mapping.png).</sub>
 
 ## Two analysis modes, one underlying model
 
