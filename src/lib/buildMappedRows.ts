@@ -25,7 +25,11 @@ export function buildSingleAmountRows(
   for (const raw of file.rows) {
     const account_code = toStringOrEmpty(mapping.account_code ? raw[mapping.account_code] : null);
     const month = normalizeMonth(mapping.month ? raw[mapping.month] : null);
-    if (!account_code || !month) {
+    // A row without a month cannot be placed in time at all. A row without
+    // an account code still comes through: it is usually a subtotal or a
+    // section heading, and partitionSubtotals reports it to the user rather
+    // than dropping it here where nobody would ever see it.
+    if (!month) {
       rowsSkippedMissingKey += 1;
       continue;
     }
@@ -59,7 +63,11 @@ export function buildDualAmountRows(
   for (const raw of file.rows) {
     const account_code = toStringOrEmpty(mapping.account_code ? raw[mapping.account_code] : null);
     const month = normalizeMonth(mapping.month ? raw[mapping.month] : null);
-    if (!account_code || !month) {
+    // A row without a month cannot be placed in time at all. A row without
+    // an account code still comes through: it is usually a subtotal or a
+    // section heading, and partitionSubtotals reports it to the user rather
+    // than dropping it here where nobody would ever see it.
+    if (!month) {
       rowsSkippedMissingKey += 1;
       continue;
     }

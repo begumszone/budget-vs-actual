@@ -7,9 +7,11 @@ import type {
   FxReportingSettings,
   Locale,
   MappedRow,
+  ParsedWorkbook,
   SingleAmountMapping,
   ThresholdSettings,
   UploadMode,
+  SheetSelection,
   YearSelection,
 } from './types';
 import { FileUpload, type UploadResult } from './components/FileUpload';
@@ -36,6 +38,10 @@ import { enrichRowsWithFx, isFxActive } from './lib/enrichRowsWithFx';
 import { computeYtdTotals } from './lib/computeYtdTotals';
 import { extractAvailableYears, splitByYear } from './lib/yoyPeriods';
 import { detectMonthlyRateEntries } from './lib/monthlyRates';
+import { defaultSelectionFor, resolveSheet } from './lib/resolveSheet';
+import { partitionSubtotals } from './lib/detectSubtotals';
+import { SheetSetup } from './components/SheetSetup';
+import { ExcludedRowsPanel, type ExcludedRowView } from './components/ExcludedRowsPanel';
 import { getModeLabels } from './lib/modeLabels';
 import { makeMonthFormatter } from './lib/formatPeriod';
 
@@ -63,6 +69,8 @@ export default function App() {
   const [dataCurrency, setDataCurrency] = useState<CurrencyCode>('TRY');
   const [fx, setFx] = useState<FxReportingSettings>(DEFAULT_FX);
   const [yearSelection, setYearSelection] = useState<YearSelection>(DEFAULT_YEARS);
+  const [sheetSelections, setSheetSelections] = useState<Record<string, SheetSelection>>({});
+  const [includeSubtotals, setIncludeSubtotals] = useState(false);
 
   const [budgetMapping, setBudgetMapping] = useState<{ mapping: SingleAmountMapping; valid: boolean } | null>(null);
   const [actualMapping, setActualMapping] = useState<{ mapping: SingleAmountMapping; valid: boolean } | null>(null);
@@ -72,10 +80,41 @@ export default function App() {
   const labels = useMemo(() => getModeLabels(analysisMode, yearSelection), [analysisMode, yearSelection]);
   const formatMonth = useMemo(() => makeMonthFormatter(analysisMode, locale), [analysisMode, locale]);
 
+  /** Sheet/header/layout choices per uploaded file, keyed by role. */
+  function selectionFor(key: string, workbook: ParsedWorkbook): SheetSelection {
+    return sheetSelections[key] ?? defaultSelectionFor(workbook);
+  }
+  function updateSelection(key: string, next: SheetSelection) {
+    setSheetSelections((prev) => ({ ...prev, [key]: next }));
+  }
+
+  /** The long-format table for each uploaded file, after sheet choice and any unpivot. */
+  const resolved = useMemo(() => {
+    if (!uploadResult) return null;
+    if (uploadResult.mode === 'two-files') {
+      return {
+        mode: 'two-files' as const,
+        budget: resolveSheet(uploadResult.budget, selectionFor('budget', uploadResult.budget)),
+        actual: resolveSheet(uploadResult.actual, selectionFor('actual', uploadResult.actual)),
+      };
+    }
+    if (uploadResult.mode === 'single-file') {
+      return {
+        mode: 'single-file' as const,
+        combined: resolveSheet(uploadResult.combined, selectionFor('combined', uploadResult.combined)),
+      };
+    }
+    return {
+      mode: 'yoy-actuals' as const,
+      file: resolveSheet(uploadResult.file, selectionFor('yoy', uploadResult.file)),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadResult, sheetSelections]);
+
   const availableYears = useMemo(() => {
-    if (uploadResult?.mode !== 'yoy-actuals' || !yoyMapping?.mapping.month) return [];
-    return extractAvailableYears(uploadResult.file, yoyMapping.mapping.month);
-  }, [uploadResult, yoyMapping]);
+    if (resolved?.mode !== 'yoy-actuals' || !yoyMapping?.mapping.month) return [];
+    return extractAvailableYears(resolved.file.file, yoyMapping.mapping.month);
+  }, [resolved, yoyMapping]);
 
   useEffect(() => {
     if (
@@ -88,16 +127,60 @@ export default function App() {
     }
   }, [analysisMode, availableYears, yearSelection]);
 
-  const varianceRows = useMemo(() => {
-    if (!mappedData) return [];
-    if (mappedData.mode === 'two-files') {
-      return matchBaseAndComparison(mappedData.budgetRows, mappedData.actualRows, threshold);
-    }
+  /**
+   * Roll-up lines are separated before any matching so they cannot
+   * double-count, but the split is recomputed from the same mapped rows
+   * whenever the user flips the include switch -- no re-mapping needed.
+   */
+  const { varianceRows, excludedRows } = useMemo(() => {
+    if (!mappedData) return { varianceRows: [], excludedRows: [] as ExcludedRowView[] };
+
+    const collect = <T extends { account_code: string; account_name: string }>(
+      rows: T[],
+      toView: (row: T) => Omit<ExcludedRowView, 'reason'>,
+    ) => {
+      const { kept, excluded } = partitionSubtotals(rows);
+      return {
+        rows: includeSubtotals ? rows : kept,
+        views: excluded.map((e) => ({ ...toView(e.row), reason: e.reason })),
+      };
+    };
+
     if (mappedData.mode === 'single-file') {
-      return buildFromDualAmountRows(mappedData.rows, threshold);
+      const { rows, views } = collect(mappedData.rows, (r) => ({
+        account_code: r.account_code,
+        account_name: r.account_name,
+        department: r.department,
+        month: r.month,
+        amount: r.actual_amount ?? r.budget_amount,
+      }));
+      return { varianceRows: buildFromDualAmountRows(rows, threshold), excludedRows: views };
     }
-    return matchBaseAndComparison(mappedData.baseRows, mappedData.comparisonRows, threshold);
-  }, [mappedData, threshold]);
+
+    const toMappedView = (r: MappedRow) => ({
+      account_code: r.account_code,
+      account_name: r.account_name,
+      department: r.department,
+      month: r.month,
+      amount: r.amount,
+    });
+
+    if (mappedData.mode === 'two-files') {
+      const b = collect(mappedData.budgetRows, toMappedView);
+      const a = collect(mappedData.actualRows, toMappedView);
+      return {
+        varianceRows: matchBaseAndComparison(b.rows, a.rows, threshold),
+        excludedRows: [...b.views, ...a.views],
+      };
+    }
+
+    const base = collect(mappedData.baseRows, toMappedView);
+    const comparison = collect(mappedData.comparisonRows, toMappedView);
+    return {
+      varianceRows: matchBaseAndComparison(base.rows, comparison.rows, threshold),
+      excludedRows: [...base.views, ...comparison.views],
+    };
+  }, [mappedData, threshold, includeSubtotals]);
 
   const rateEntries = useMemo(
     () => detectMonthlyRateEntries(varianceRows, analysisMode, yearSelection),
@@ -147,23 +230,23 @@ export default function App() {
   }
 
   function handleConfirmMapping() {
-    if (!uploadResult) return;
-    if (uploadResult.mode === 'two-files' && budgetMapping && actualMapping) {
-      const { rows: budgetRows } = buildSingleAmountRows(uploadResult.budget, budgetMapping.mapping);
-      const { rows: actualRows } = buildSingleAmountRows(uploadResult.actual, actualMapping.mapping);
+    if (!resolved) return;
+    if (resolved.mode === 'two-files' && budgetMapping && actualMapping) {
+      const { rows: budgetRows } = buildSingleAmountRows(resolved.budget.file, budgetMapping.mapping);
+      const { rows: actualRows } = buildSingleAmountRows(resolved.actual.file, actualMapping.mapping);
       setMappedData({ mode: 'two-files', budgetRows, actualRows });
       setStage('results');
-    } else if (uploadResult.mode === 'single-file' && combinedMapping) {
-      const { rows } = buildDualAmountRows(uploadResult.combined, combinedMapping.mapping);
+    } else if (resolved.mode === 'single-file' && combinedMapping) {
+      const { rows } = buildDualAmountRows(resolved.combined.file, combinedMapping.mapping);
       setMappedData({ mode: 'single-file', rows });
       setStage('results');
     } else if (
-      uploadResult.mode === 'yoy-actuals' &&
+      resolved.mode === 'yoy-actuals' &&
       yoyMapping &&
       yearSelection.baseYear !== null &&
       yearSelection.comparisonYear !== null
     ) {
-      const { rows } = buildSingleAmountRows(uploadResult.file, yoyMapping.mapping);
+      const { rows } = buildSingleAmountRows(resolved.file.file, yoyMapping.mapping);
       const baseRows = splitByYear(rows, yearSelection.baseYear);
       const comparisonRows = splitByYear(rows, yearSelection.comparisonYear);
       setMappedData({ mode: 'yoy', baseRows, comparisonRows });
@@ -216,36 +299,76 @@ export default function App() {
               We've pre-filled our best guess for each field — adjust any that look wrong. Fields marked
               with * are required.
             </p>
-            {uploadResult.mode === 'two-files' && (
+            {uploadResult.mode === 'two-files' && resolved?.mode === 'two-files' && (
               <div className="mapping-columns">
-                <SingleAmountFileMapper
-                  title="Budget file"
-                  file={uploadResult.budget}
-                  amountLabel="Budget amount"
-                  onChange={(mapping, valid) => setBudgetMapping({ mapping, valid })}
+                <div className="mapping-block">
+                  <SheetSetup
+                    title="Budget file"
+                    workbook={uploadResult.budget}
+                    selection={selectionFor('budget', uploadResult.budget)}
+                    headers={resolved.budget.rawHeaders}
+                    onChange={(next) => updateSelection('budget', next)}
+                  />
+                  <SingleAmountFileMapper
+                    key={`budget-${resolved.budget.file.headers.join('|')}`}
+                    title="Columns"
+                    file={resolved.budget.file}
+                    amountLabel="Budget amount"
+                    onChange={(mapping, valid) => setBudgetMapping({ mapping, valid })}
+                  />
+                </div>
+                <div className="mapping-block">
+                  <SheetSetup
+                    title="Actual file"
+                    workbook={uploadResult.actual}
+                    selection={selectionFor('actual', uploadResult.actual)}
+                    headers={resolved.actual.rawHeaders}
+                    onChange={(next) => updateSelection('actual', next)}
+                  />
+                  <SingleAmountFileMapper
+                    key={`actual-${resolved.actual.file.headers.join('|')}`}
+                    title="Columns"
+                    file={resolved.actual.file}
+                    amountLabel="Actual amount"
+                    onChange={(mapping, valid) => setActualMapping({ mapping, valid })}
+                  />
+                </div>
+              </div>
+            )}
+            {uploadResult.mode === 'single-file' && resolved?.mode === 'single-file' && (
+              <div className="mapping-block">
+                <SheetSetup
+                  title="Combined file"
+                  workbook={uploadResult.combined}
+                  selection={selectionFor('combined', uploadResult.combined)}
+                  headers={resolved.combined.rawHeaders}
+                  onChange={(next) => updateSelection('combined', next)}
                 />
-                <SingleAmountFileMapper
-                  title="Actual file"
-                  file={uploadResult.actual}
-                  amountLabel="Actual amount"
-                  onChange={(mapping, valid) => setActualMapping({ mapping, valid })}
+                <DualAmountFileMapper
+                  key={`combined-${resolved.combined.file.headers.join('|')}`}
+                  file={resolved.combined.file}
+                  onChange={(mapping, valid) => setCombinedMapping({ mapping, valid })}
                 />
               </div>
             )}
-            {uploadResult.mode === 'single-file' && (
-              <DualAmountFileMapper
-                file={uploadResult.combined}
-                onChange={(mapping, valid) => setCombinedMapping({ mapping, valid })}
-              />
-            )}
-            {uploadResult.mode === 'yoy-actuals' && (
+            {uploadResult.mode === 'yoy-actuals' && resolved?.mode === 'yoy-actuals' && (
               <>
-                <SingleAmountFileMapper
-                  title="Actuals file"
-                  file={uploadResult.file}
-                  amountLabel="Amount"
-                  onChange={(mapping, valid) => setYoyMapping({ mapping, valid })}
-                />
+                <div className="mapping-block">
+                  <SheetSetup
+                    title="Actuals file"
+                    workbook={uploadResult.file}
+                    selection={selectionFor('yoy', uploadResult.file)}
+                    headers={resolved.file.rawHeaders}
+                    onChange={(next) => updateSelection('yoy', next)}
+                  />
+                  <SingleAmountFileMapper
+                    key={`yoy-${resolved.file.file.headers.join('|')}`}
+                    title="Columns"
+                    file={resolved.file.file}
+                    amountLabel="Amount"
+                    onChange={(mapping, valid) => setYoyMapping({ mapping, valid })}
+                  />
+                </div>
                 <div className="mapping-block">
                   <h3>Which years are you comparing?</h3>
                   <YearRangeSelector
@@ -326,6 +449,13 @@ export default function App() {
               fxActive={fxActive}
               targetCurrency={fx.targetCurrency}
               labels={labels}
+            />
+            <ExcludedRowsPanel
+              excluded={excludedRows}
+              locale={locale}
+              dataCurrency={dataCurrency}
+              included={includeSubtotals}
+              onToggleInclude={setIncludeSubtotals}
             />
             <UnmatchedRows
               rows={enrichedRows}

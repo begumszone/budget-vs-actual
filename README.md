@@ -84,43 +84,41 @@ Try it with the bundled USD sample data ([`sample-data/budget-usd.csv`](sample-d
 
 ## Expected input format
 
-Column headers don't need to match exactly — you'll map them in the mapping step — but here's the shape the tool expects.
+Real budget files are messy, so the tool is built to open them as they come out of your accounting system rather than demanding a cleaned-up sheet.
 
-**Budget vs Actual:**
+**What it handles automatically:**
+
+- **Months across the top or down a column.** Most company budgets put one column per month (`Jan-26`, `Feb-26`, …). The tool detects that layout, asks you to confirm which columns are periods, and reshapes it internally. A file with a single `Period` column works too — pick whichever matches your file.
+- **Title and preamble rows.** Exports usually start with the company name, a report title and a blank row before the real header. The header row is detected automatically, and you can correct it from a dropdown that previews each row.
+- **Multiple worksheets.** The sheet that most looks like data is selected by default (so a cover sheet doesn't win), and you can switch to any other sheet.
+- **Subtotal and section rows.** `TOTAL REVENUE`, `ARA TOPLAM`, `GENEL TOPLAM` and unlabelled section headings are separated out so they cannot double-count — on the bundled sample, including them would exactly double every figure. They are listed in their own panel with the reason, and a switch puts them back if a genuine account was caught. An account legitimately named `Total Rewards Program` is *not* removed.
+- **Your column names.** `GL Code`, `Hesap Kodu`, `Account #` — headers are auto-matched to the fields the tool needs and every guess is editable.
+- **Number formats.** `1,234.56`, `1.234,56`, `(1.234)` and currency symbols all parse.
+
+**What it still needs from you:** each line must have a period it belongs to and an amount. Rows with no recognisable period are skipped. Hierarchical account trees are treated as a flat list of accounts.
+
+The minimum shape, once mapped:
 
 | Field | Required | Example |
 |---|---|---|
-| `account_code` | Yes | `5000` |
+| `account_code` | Yes* | `5000` |
 | `account_name` | No | `Marketing Expenses` |
 | `department` | No | `Sales` |
-| `month` | Yes | `2026-01`, `Jan-26`, `January 2026` |
-| `budget_amount` (budget file) / `actual_amount` (actual file) | Yes | `40000` |
+| period | Yes | `2026-01`, `Jan-26`, or a column per month |
+| amount | Yes | `40000` |
 
-Sample budget row:
+\* Rows without an account code are treated as subtotals/headings and reported separately rather than dropped.
 
-| GL Code | Account Name | Department | Period | Budget Amount |
-|---|---|---|---|---|
-| 5000 | Marketing Expenses | Sales | 2026-01 | 40000 |
+**Year over Year** needs the same fields, with rows spanning at least two calendar years so there is something to compare.
 
-Sample actual row:
+### Sample files
 
-| GL Code | Account Name | Department | Period | Actual Amount |
-|---|---|---|---|---|
-| 5000 | Marketing Expenses | Sales | 2026-01 | 47000 |
+- [`sample-data/company-budget-pack.xlsx`](sample-data/company-budget-pack.xlsx) — **the realistic one.** A three-sheet management pack with a cover sheet, title rows, months across the top, section headings and subtotals in English and Turkish. Use `Budget 2026` as the budget and `Actuals 2026` as the actual.
+- [`sample-data/budget.csv`](sample-data/budget.csv) / [`sample-data/actual.csv`](sample-data/actual.csv) — tidy long-format pair, also loaded by the **Try it with sample data** button.
+- [`sample-data/budget-usd.csv`](sample-data/budget-usd.csv) / [`sample-data/actual-usd.csv`](sample-data/actual-usd.csv) — USD-denominated, for the currency-reporting feature.
+- [`sample-data/actuals-2yr.csv`](sample-data/actuals-2yr.csv) — two years of actuals for Year over Year, including a new and a discontinued account.
 
-**Year over Year:** the same `account_code` / `account_name` / `department` / `month` fields, plus a single `amount` column — but the file should contain rows for *at least two different calendar years* so there's something to compare. You'll pick the base and comparison years after mapping columns.
-
-| GL Code | Account Name | Department | Period | Amount |
-|---|---|---|---|---|
-| 5000 | Marketing Expenses | Sales | 2025-01 | 38000 |
-| 5000 | Marketing Expenses | Sales | 2026-01 | 47000 |
-
-Try it immediately with the bundled sample data:
-- [`sample-data/budget.csv`](sample-data/budget.csv) / [`sample-data/actual.csv`](sample-data/actual.csv) — Budget vs Actual, multiple months and departments, plus a couple of intentionally unmatched rows.
-- [`sample-data/budget-usd.csv`](sample-data/budget-usd.csv) / [`sample-data/actual-usd.csv`](sample-data/actual-usd.csv) — USD-denominated, for trying the currency-reporting feature above.
-- [`sample-data/actuals-2yr.csv`](sample-data/actuals-2yr.csv) — Year over Year, 2025 vs 2026 actuals for the same accounts, including one account that only exists in 2026 (a new "Cloud Hosting" line) and one that only exists in 2025 (a discontinued "Print Advertising" line) so you can see how new/discontinued lines show up.
-
-Rows are matched by `account_code` + month (+ `department`, when present) -- the full month in Budget vs Actual mode, month-of-year in Year over Year mode. Rows that exist on only one side are never silently dropped — they show up in their own "unmatched" section. A blank or zero base amount doesn't cause an error; the variance percent is shown as "N/A".
+Rows are matched by `account_code` + period (+ `department`, when present). Anything present on only one side is surfaced in its own section, never silently dropped. A blank or zero base amount shows "N/A" for the percentage rather than erroring.
 
 ## Running locally
 

@@ -1,22 +1,22 @@
 import { useState } from 'react';
-import type { AnalysisMode, ParsedFile, UploadMode } from '../types';
-import { parseFile, FileParseError } from '../lib/parseFile';
+import type { AnalysisMode, ParsedWorkbook, UploadMode } from '../types';
+import { parseWorkbook, FileParseError } from '../lib/parseFile';
 import { describeSample, getBudgetVsActualSample, getYoySample } from '../lib/sampleData';
 
 interface TwoFilesResult {
   mode: 'two-files';
-  budget: ParsedFile;
-  actual: ParsedFile;
+  budget: ParsedWorkbook;
+  actual: ParsedWorkbook;
 }
 
 interface SingleFileResult {
   mode: 'single-file';
-  combined: ParsedFile;
+  combined: ParsedWorkbook;
 }
 
 interface YoyActualsResult {
   mode: 'yoy-actuals';
-  file: ParsedFile;
+  file: ParsedWorkbook;
 }
 
 export type UploadResult = TwoFilesResult | SingleFileResult | YoyActualsResult;
@@ -83,7 +83,7 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
           setErrors({ yoy: 'Please choose an actuals file.' });
           return;
         }
-        const file = await parseFile(yoyFile);
+        const file = await parseWorkbook(yoyFile);
         onReady({ mode: 'yoy-actuals', file });
       } else if (mode === 'two-files') {
         if (!budgetFile || !actualFile) {
@@ -94,10 +94,10 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
           return;
         }
         const [budget, actual] = await Promise.all([
-          parseFile(budgetFile).catch((e) => {
+          parseWorkbook(budgetFile).catch((e) => {
             throw { field: 'budget', error: e };
           }),
-          parseFile(actualFile).catch((e) => {
+          parseWorkbook(actualFile).catch((e) => {
             throw { field: 'actual', error: e };
           }),
         ]);
@@ -107,7 +107,7 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
           setErrors({ combined: 'Please choose a file.' });
           return;
         }
-        const combined = await parseFile(combinedFile);
+        const combined = await parseWorkbook(combinedFile);
         onReady({ mode: 'single-file', combined });
       }
     } catch (err) {
@@ -130,11 +130,11 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
     setLoadingSample(true);
     try {
       if (analysisMode === 'yoy') {
-        const file = await parseFile(getYoySample());
+        const file = await parseWorkbook(getYoySample());
         onReady({ mode: 'yoy-actuals', file });
       } else {
         const sample = getBudgetVsActualSample();
-        const [budget, actual] = await Promise.all([parseFile(sample.budget), parseFile(sample.actual)]);
+        const [budget, actual] = await Promise.all([parseWorkbook(sample.budget), parseWorkbook(sample.actual)]);
         onReady({ mode: 'two-files', budget, actual });
       }
     } finally {

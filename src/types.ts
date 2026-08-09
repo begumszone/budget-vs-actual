@@ -15,10 +15,42 @@ export type UploadMode = 'two-files' | 'single-file';
 /** A row as parsed straight out of a CSV/XLSX file, before any mapping. */
 export type RawRow = Record<string, string | number | null>;
 
+/** One worksheet, still as a raw grid so the header row can be re-chosen. */
+export interface ParsedSheet {
+  name: string;
+  grid: (string | number | null)[][];
+  /** Best guess at which grid row holds the column names. */
+  suggestedHeaderRow: number;
+}
+
+export interface ParsedWorkbook {
+  fileName: string;
+  sheets: ParsedSheet[];
+}
+
+/** A single sheet resolved into headers + rows, ready for column mapping. */
 export interface ParsedFile {
   fileName: string;
+  sheetName: string;
   headers: string[];
   rows: RawRow[];
+}
+
+/**
+ * How the periods are laid out in the uploaded sheet.
+ * `long`: one row per account per month, with a month column.
+ * `wide`: one row per account, with a column per month -- the layout most
+ * company budget files actually use.
+ */
+export type PeriodLayout = 'long' | 'wide';
+
+/** Which sheet, header row and layout the user settled on for one file. */
+export interface SheetSelection {
+  sheetIndex: number;
+  headerRowIndex: number;
+  layout: PeriodLayout;
+  /** Headers treated as period columns when layout is 'wide'. */
+  monthColumns: string[];
 }
 
 /** Fields common to any uploaded file, regardless of upload mode. */
