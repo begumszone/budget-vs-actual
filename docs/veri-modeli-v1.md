@@ -30,7 +30,7 @@ normalizasyon hatası üretiyor.
                  │
         ÇEKİRDEK TABLOLAR        ← standart şema (bölüm 3)
                  │
-        TÜRETME KATMANI          ← vade düzeltme, tahsilat gecikmesi, vergi takvimi
+        TÜRETME KATMANI          ← vade düzeltme, tahsilat gecikmesi, vergi takvimi, kur senaryosu
                  │
         PROJEKSİYON MOTORU       ← haftalık kovalara dağıtım
                  │
@@ -40,6 +40,11 @@ normalizasyon hatası üretiyor.
 ---
 
 ## 3. Çekirdek Tablolar
+
+> **Tüm çekirdek tablolar `company_id` taşır.** v1 tek şirketle çalışır (bkz. 7.2), ancak
+> alan baştan bulunur ve her sorgu üzerinden filtreler. Aşağıdaki tablolarda tek tek
+> tekrar edilmedi. Sonradan eklemek her tabloyu, her sorguyu ve her ekranı değiştirmek
+> demek olurdu; şimdi eklemek neredeyse bedava.
 
 ### 3.1 `party` — Cari hesap ana kaydı
 
@@ -268,6 +273,41 @@ Veri yoksa sektör varsayılanı. Aşırı mühendislik yapılacak yer değil.
 | Baz | `committed` + `likely` |
 | İyimser | Hepsi, gecikme uygulanmadan |
 
+### 4.5 Kur senaryoları
+
+v1 kapsamında (bkz. 7.3). Yalnızca `currency <> TRY` olan satırları ilgilendirir.
+
+`open_item.amount_try`, kaydın **defter değeridir** — işlem anındaki kurla hesaplanmış
+tarihsel bir gerçektir ve öyle kalır. İleri tarihli bir kalemin projeksiyondaki TL
+karşılığı ondan okunmaz, senaryo kuruyla yeniden hesaplanır. İkisini karıştırmamak
+önemli: biri olan, diğeri varsayılan.
+
+Senaryo kuru hafta bazında tutulur — `(scenario, currency, week_key, rate)`, `week_key`
+4.4'teki ISO hafta anahtarı:
+
+| Senaryo | Kur eğrisi |
+|---|---|
+| `fixed` | `as_of` tarihindeki kur tüm ufka sabit uygulanır. Referans senaryo. |
+| `forward` | Hafta bazında kur eğrisi; forward kotasyonundan alınır veya elle girilir. |
+| `stress` | `fixed` üzerine tek parametreli şok (ör. TL %20 değer kaybı). |
+
+Bunlar 4.4'teki kötümser/baz/iyimser senaryolarından **bağımsız bir eksendir**. Biri
+tahsilatın *ne zaman ve ne kadarının* geleceğiyle, diğeri geldiğinde *kaç TL edeceğiyle*
+ilgili. Raporda ikisi birlikte belirtilmeli, yoksa "kötümser" hangi kurla kötümser
+belirsiz kalır.
+
+**Kotasyon yönü.** Kur her zaman `1 [güçlü] = X [zayıf]` biçiminde, piyasada okunduğu
+gibi girilir; anchor önceliği `EUR > GBP > USD > TRY`. Ters çevirme (bölme mi çarpma mı)
+kullanıcıya sorulmaz, çift yönlü türetilir. Bu mantık bu depoda testleriyle birlikte
+zaten yazılı — `src/lib/fxQuote.ts`, `src/lib/fxQuote.test.ts` — ve buraya olduğu gibi
+taşınabilir.
+
+**Kuru olmayan hafta varsayılmaz.** 1. bölümün 4. ilkesinin doğrudan sonucu: kuru
+tanımsız bir hafta için dövizli kalem çevrilmez, işaretlenir ve dönüştürülmüş toplamın
+dışında bırakılır. Sessizce 1.0 ya da son bilinen kur kabul edilmez — aksi halde eksik
+kur, düşük ama geçerli görünen bir toplam üretir. Bu depodaki mevcut araç da aynı şekilde
+davranıyor (`NoRateCell`), sebebi aynı.
+
 ---
 
 ## 5. Veri Kalitesi Paneli
@@ -281,6 +321,7 @@ Gösterilecek kontroller:
 - Vadesi geçmiş ama kapanmamış kalemler (gerçekten ödenmemiş mi, mahsup mu?)
 - Vadesi geçmiş, portföyde duran çekler
 - Kur bilgisi eksik dövizli kalemler
+- Senaryo kuru tanımsız haftaya düşen dövizli kalemler (bkz. 4.5) — çevrilmeden bırakılan tutar
 - Ufuk dışına düşen (13 hafta sonrası) tutar — "görünmeyen" kısmın büyüklüğü
 
 Her satır tıklanabilir olmalı, altındaki kayıt listesine inmeli. Aksi halde uyarı
@@ -308,14 +349,62 @@ Taksitli ödeme planında bir fatura birden çok satır üretir.
 
 ---
 
-## 7. Açık Sorular
+## 7. Kararlar
 
-1. İlk sürüm hangi besleme yöntemiyle çalışsın — Excel export mu, doğrudan SQL mi?
-2. Çok şirketli (konsolide) yapı ilk sürümde olacak mı, tek şirket mi?
-3. Dövizli kalemlerde kur senaryosu (sabit / forward / stres) ilk sürüme girsin mi?
-4. Enflasyon etkisi ayrı bir gösterge olarak mı, yoksa v2'ye mi?
-5. Çok kullanıcılı mı, tek kullanıcı masaüstü/web mi?
+### 7.1 Besleme yöntemi → **Excel export ile başla, Logo SQL sonra**
+
+İlk sürüm Logo'dan alınan export dosyalarını okur. Doğrudan SQL bağlantısı v1'de yok.
+
+Gerekçe: BT erişimi, VPN ve izin süreci beklenmeden bu hafta başlanabilir. Ayrıca 6.
+bölümün kendi uyarısı — Logo tablo ve alan isimlerinin sürüme ve firma-dönem numarasına
+göre değişmesi — doğrudan SQL'i belirsizliği en yüksek seçenek yapıyor. Belirsiz olanı
+ikinci adıma bırakmak doğru sıra.
+
+Bu bir yol ayrımı değil, sıralama tercihi: 2. bölümdeki adaptör katmanı zaten kaynak
+bağımsızlığı için var. SQL'e geçmek ikinci bir adaptör yazmak demek; çekirdek tablolar,
+türetme kuralları, projeksiyon motoru ve ekranlar değişmez.
+
+> **Doğrulanması gereken koşul.** Excel yolunun geçerliliği tek bir şeye bağlı:
+> export'un **taksit (ödeme hareketi) seviyesinde** satır üretebilmesi. Yalnızca fatura
+> başlığı veriyorsa taksit kırılımı kaybolur ve tutarlar yanlış haftaya düşer — bu da
+> aracın tek işini bozar. 6. bölümdeki kolon yapısı notu alınırken ilk bakılacak şey bu.
+
+### 7.2 Şirket kapsamı → **Tek şirket, `company_id` baştan var**
+
+v1 tek şirketle çalışır; konsolidasyon ve grup içi eliminasyon yok. Ancak `company_id`
+tüm çekirdek tablolarda baştan bulunur (bkz. 3. bölüm girişi). Sonradan eklemenin
+maliyeti şemayı, sorguları ve ekranları tek tek elden geçirmek; şimdi eklemenin maliyeti
+bir kolon.
+
+### 7.3 Kur senaryosu → **v1'e dahil**
+
+`fixed` / `forward` / `stress` üçlüsü ilk sürümde var. Tasarımı 4.5'te.
+
+Kapsama alınmasını kolaylaştıran bir sebep: kotasyon yönü ve çevrim mantığı bu depoda
+testleriyle birlikte zaten yazılı, sıfırdan başlanmıyor.
+
+### 7.4 Enflasyon etkisi → **v2**
+
+Reel nakit pozisyonu ayrı bir gösterge olarak v1'de yok. Hangi endeksin kullanılacağı
+başlı başına bir karar ve çekirdek şemayı etkilemiyor — sonradan eklenebilir.
+
+### 7.5 Kullanıcı sayısı → **v1 tek kullanıcı**
+
+Tek kullanıcılı masaüstü/web sürümü. Çok kullanıcılı erişim, giriş ve yetkilendirme
+backend + kimlik doğrulama gerektirir; v2.
 
 ---
 
-*v1 — taslak. Kod yazımından önce bölüm 6 ve 7'nin netleşmesi gerekiyor.*
+## 8. Açık Kalan Tek Blokaj
+
+**6. bölümdeki Logo eşlemesi doğrulanmadı.** Erişim varken export şablonlarının kolon
+yapısı not alınmalı — gerçek veri değil, yalnızca başlıklar ve format. Öncelik sırası:
+
+1. `open_item` taksit seviyesinde çıkıyor mu (bkz. 7.1 koşulu)
+2. Vade alanı geliyor mu, geliyorsa `due_date == doc_date` oranı ne (3.2'deki kritik kural)
+3. `source_ref` olarak kullanılabilecek bir kayıt anahtarı (LOGICALREF vb.) export'ta var mı
+4. Çek/senet durum bilgisi hangi alanda ve hangi değerlerle geliyor (3.3'teki `status` enum'u)
+
+---
+
+*v1 — 7. bölümdeki beş karar alındı. Kod yazımından önce kalan tek blokaj 8. bölüm.*
