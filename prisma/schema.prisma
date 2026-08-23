@@ -1,0 +1,229 @@
+// Fatura Onay Sistemi — veri modeli
+//
+// Yerel geliştirmede SQLite kullanılır (aşağıdaki provider = "sqlite").
+// Vercel / production'da Postgres'e geçmek için provider'ı "postgresql"
+// yapıp DATABASE_URL değişkenini Postgres bağlantı adresiyle değiştirin.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------------
+// Kullanıcılar ve departmanlar
+// ------------------------------------------------------------------
+
+enum Role {
+  EMPLOYEE // Standart çalışan — harcama formu gönderir
+  ACCOUNTING // Muhasebe — harcamaları inceler, faturaları onaya yönlendirir
+  APPROVER // Departman onaycısı — kendisine/departmanına gelen faturaları onaylar
+  ADMIN // Tüm yetkiler
+}
+
+model Department {
+  id   String @id @default(cuid())
+  name String @unique
+  code String @unique
+
+  users            User[]
+  expenseForms     ExpenseForm[]
+  targetedInvoices Invoice[]     @relation("InvoiceTargetDepartment")
+
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id           String  @id @default(cuid())
+  name         String
+  email        String  @unique
+  passwordHash String
+  role         Role    @default(EMPLOYEE)
+  title        String? // Ünvan (opsiyonel)
+  active       Boolean @default(true)
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  submittedExpenses  ExpenseForm[] @relation("ExpenseSubmitter")
+  reviewedExpenses   ExpenseForm[] @relation("ExpenseReviewer")
+  uploadedInvoices   Invoice[]     @relation("InvoiceUploader")
+  targetedInvoices   Invoice[]     @relation("InvoiceTargetUser")
+  decidedInvoices    Invoice[]     @relation("InvoiceDecider")
+  uploadedFiles      FileAsset[]
+  auditEvents        AuditEvent[]
+
+  createdAt DateTime @default(now())
+}
+
+// ------------------------------------------------------------------
+// Dosyalar (fiş fotoğrafları, fatura PDF'leri)
+// Dosya içeriği doğrudan veritabanında saklanır; böylece uygulama
+// harici bir depolama (S3/Blob) gerektirmeden Vercel'de çalışır.
+// ------------------------------------------------------------------
+
+model FileAsset {
+  id       String @id @default(cuid())
+  filename String
+  mimeType String
+  size     Int
+  data     Bytes
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  expenseForms ExpenseForm[]
+  invoices     Invoice[]
+}
+
+// ------------------------------------------------------------------
+// Harcama formu (çalışan -> muhasebe)
+// ------------------------------------------------------------------
+
+enum ExpenseStatus {
+  SUBMITTED // Gönderildi, muhasebe onayı bekliyor
+  APPROVED // Muhasebe onayladı
+  REJECTED // Muhasebe reddetti
+  REIMBURSED // Ödendi / iade edildi
+}
+
+enum ExpenseCategory {
+  TAXI
+  MEALS
+  ACCOMMODATION
+  FLIGHT
+  FUEL
+  OFFICE_SUPPLIES
+  ENTERTAINMENT
+  OTHER
+}
+
+model ExpenseForm {
+  id     String        @id @default(cuid())
+  code   String        @unique // Okunabilir referans: HRC-2026-0001
+  status ExpenseStatus @default(SUBMITTED)
+
+  // Gönderen çalışan
+  submitterId String
+  submitter   User   @relation("ExpenseSubmitter", fields: [submitterId], references: [id])
+
+  // Harcamanın yapıldığı departman
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  category    ExpenseCategory
+  expenseDate DateTime // Harcamanın yapıldığı gün
+  amount      Float
+  currency    String          @default("TRY")
+
+  // Harcama ne için yapıldı (örn. hangi müşteriye giderken)
+  purpose  String
+  merchant String? // Nereden alındı (örn. taksi firması)
+
+  // Fiş / belge fotoğrafı
+  receiptId String?
+  receipt   FileAsset? @relation(fields: [receiptId], references: [id])
+
+  // Muhasebe incelemesi
+  reviewerId String?
+  reviewer   User?     @relation("ExpenseReviewer", fields: [reviewerId], references: [id])
+  reviewNote String?
+  reviewedAt DateTime?
+
+  auditEvents AuditEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ------------------------------------------------------------------
+// Fatura onayı (muhasebe -> departman/kişi)
+// ------------------------------------------------------------------
+
+enum InvoiceStatus {
+  PENDING_APPROVAL // Muhasebe onaya gönderdi, departman/kişi bekliyor
+  INFO_REQUESTED // Onaycı ek bilgi/düzeltme istedi (muhasebeye geri)
+  APPROVED // Onaylandı
+  REJECTED // Reddedildi
+}
+
+enum InvoiceTargetType {
+  DEPARTMENT // Tüm departmana yönlendirildi
+  USER // Belirli bir kişiye yönlendirildi
+}
+
+model Invoice {
+  id     String        @id @default(cuid())
+  code   String        @unique // FTR-2026-0001
+  status InvoiceStatus @default(PENDING_APPROVAL)
+
+  // Faturayı yükleyen muhasebe kullanıcısı
+  uploaderId String
+  uploader   User   @relation("InvoiceUploader", fields: [uploaderId], references: [id])
+
+  // Fatura künyesi
+  vendorName    String // XYZ Limited Şirketi
+  invoiceNumber String? // Fatura no
+  invoiceDate   DateTime
+  amount        Float
+  currency      String   @default("TRY")
+  taxAmount     Float? // KDV tutarı
+  description   String // Muhasebenin girdiği açıklama (örn. marketing hizmeti)
+
+  // Fatura PDF görüntüsü
+  documentId String?
+  document   FileAsset? @relation(fields: [documentId], references: [id])
+
+  // Yönlendirme: departman ya da kişi
+  targetType         InvoiceTargetType
+  targetDepartmentId String?
+  targetDepartment   Department?        @relation("InvoiceTargetDepartment", fields: [targetDepartmentId], references: [id])
+  targetUserId       String?
+  targetUser         User?              @relation("InvoiceTargetUser", fields: [targetUserId], references: [id])
+
+  // ----- Onaycı departmanın dolduracağı arka taraf verileri -----
+  costCenter       String? // Masraf merkezi
+  glAccount        String? // Muhasebe (GL) hesap kodu
+  budgetLine       String? // Bütçe kalemi
+  projectCode      String? // Proje / kampanya kodu
+  isBudgeted       Boolean? // Bütçede var mıydı?
+  serviceStartDate DateTime?
+  serviceEndDate   DateTime?
+  approverNote     String? // Onaycının notu
+
+  // Karar
+  deciderId  String?
+  decider    User?     @relation("InvoiceDecider", fields: [deciderId], references: [id])
+  decidedAt  DateTime?
+
+  auditEvents AuditEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ------------------------------------------------------------------
+// Denetim / işlem geçmişi (zaman çizelgesi)
+// ------------------------------------------------------------------
+
+model AuditEvent {
+  id      String @id @default(cuid())
+  action  String // örn: "CREATED", "APPROVED", "REJECTED", "INFO_REQUESTED"
+  note    String?
+
+  actorId String?
+  actor   User?   @relation(fields: [actorId], references: [id])
+
+  expenseFormId String?
+  expenseForm   ExpenseForm? @relation(fields: [expenseFormId], references: [id])
+
+  invoiceId String?
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+
+  createdAt DateTime @default(now())
+}
