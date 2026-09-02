@@ -11,8 +11,8 @@ import {
 } from 'recharts';
 import type { CurrencyCode, Locale } from '../types';
 import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
-import { formatCurrency } from '../lib/formatters';
-import { getChartPalette } from '../lib/chartPalette';
+import { formatAxisCurrency, formatCurrency } from '../lib/formatters';
+import { getChartPalette, tooltipStyles } from '../lib/chartPalette';
 import { usePrefersDark } from '../hooks/usePrefersDark';
 import type { ModeLabels } from '../lib/modeLabels';
 
@@ -27,6 +27,7 @@ interface Props {
 export function TrendChart({ rows, locale, displayCurrency, labels, formatMonth }: Props) {
   const dark = usePrefersDark();
   const palette = getChartPalette(dark);
+  const tip = tooltipStyles(palette);
 
   /**
    * A month with no exchange rate cannot be converted, so its rows carry no
@@ -53,37 +54,51 @@ export function TrendChart({ rows, locale, displayCurrency, labels, formatMonth 
   return (
     <section className="chart-section">
       <h2>Monthly trend</h2>
-      <ResponsiveContainer width="100%" height={280}>
-        <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+      <ResponsiveContainer width="100%" height={205}>
+        <LineChart data={data} margin={{ top: 4, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid stroke={palette.grid} vertical={false} />
           <XAxis
             dataKey="month"
-            stroke={palette.mutedInk}
-            tick={{ fill: palette.mutedInk, fontSize: 12 }}
+            stroke={palette.grid}
+            tickLine={false}
+            tick={{ fill: palette.mutedInk, fontSize: 11.5 }}
             tickFormatter={formatMonth}
+            dy={4}
           />
           <YAxis
-            stroke={palette.mutedInk}
-            tick={{ fill: palette.mutedInk, fontSize: 12 }}
-            tickFormatter={(v) => formatCurrency(v, locale, displayCurrency)}
-            width={90}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: palette.mutedInk, fontSize: 11.5 }}
+            tickFormatter={(v) => formatAxisCurrency(v, locale, displayCurrency)}
+            width={64}
           />
           <Tooltip
             labelFormatter={(label) => formatMonth(String(label))}
             formatter={(value) =>
               formatCurrency(typeof value === 'number' ? value : Number(value), locale, displayCurrency)
             }
-            contentStyle={{ fontSize: 13 }}
+            {...tip}
+            cursor={{ stroke: palette.mutedInk, strokeOpacity: 0.35, strokeWidth: 1 }}
           />
-          <Legend wrapperStyle={{ fontSize: 13 }} />
-          <Line type="monotone" dataKey="base" name={labels.base} stroke={palette.budget} strokeWidth={2} dot={{ r: 3 }} />
+          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} iconSize={9} iconType="circle" />
+          {/* A 2px surface ring keeps a marker legible where the two lines cross. */}
+          <Line
+            type="monotone"
+            dataKey="base"
+            name={labels.base}
+            stroke={palette.budget}
+            strokeWidth={2}
+            dot={{ r: 4, strokeWidth: 2, stroke: palette.surface }}
+            activeDot={{ r: 6, strokeWidth: 2, stroke: palette.surface }}
+          />
           <Line
             type="monotone"
             dataKey="comparison"
             name={labels.comparison}
             stroke={palette.actual}
             strokeWidth={2}
-            dot={{ r: 3 }}
+            dot={{ r: 4, strokeWidth: 2, stroke: palette.surface }}
+            activeDot={{ r: 6, strokeWidth: 2, stroke: palette.surface }}
           />
         </LineChart>
       </ResponsiveContainer>

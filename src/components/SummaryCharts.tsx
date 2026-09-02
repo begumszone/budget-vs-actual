@@ -11,8 +11,8 @@ import {
 } from 'recharts';
 import type { CurrencyCode, Locale } from '../types';
 import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
-import { formatCurrency } from '../lib/formatters';
-import { getChartPalette } from '../lib/chartPalette';
+import { formatAxisCurrency, formatCurrency } from '../lib/formatters';
+import { getChartPalette, tooltipStyles } from '../lib/chartPalette';
 import { usePrefersDark } from '../hooks/usePrefersDark';
 import type { ModeLabels } from '../lib/modeLabels';
 
@@ -26,6 +26,7 @@ interface Props {
 export function SummaryCharts({ rows, locale, displayCurrency, labels }: Props) {
   const dark = usePrefersDark();
   const palette = getChartPalette(dark);
+  const tip = tooltipStyles(palette);
 
   const hasDepartments = rows.some((r) => r.department);
   const groupKey: 'department' | 'account_code' = hasDepartments ? 'department' : 'account_code';
@@ -49,25 +50,40 @@ export function SummaryCharts({ rows, locale, displayCurrency, labels }: Props) 
       <h2>
         {labels.base} vs {labels.comparison} by {groupKey === 'department' ? 'department' : 'account'}
       </h2>
-      <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+      <ResponsiveContainer width="100%" height={250}>
+        {/* Thin bars with a 2px gap and a capped width: with only two or three
+            cost centres, full-width bars become slabs of saturated colour that
+            dominate the page instead of reporting a number. */}
+        <BarChart
+          data={data}
+          margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
+          barGap={2}
+          barCategoryGap="34%"
+        >
           <CartesianGrid stroke={palette.grid} vertical={false} />
-          <XAxis dataKey="name" stroke={palette.mutedInk} tick={{ fill: palette.mutedInk, fontSize: 12 }} />
+          <XAxis
+            dataKey="name"
+            stroke={palette.grid}
+            tickLine={false}
+            tick={{ fill: palette.mutedInk, fontSize: 11.5 }}
+            dy={4}
+          />
           <YAxis
-            stroke={palette.mutedInk}
-            tick={{ fill: palette.mutedInk, fontSize: 12 }}
-            tickFormatter={(v) => formatCurrency(v, locale, displayCurrency)}
-            width={90}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: palette.mutedInk, fontSize: 11.5 }}
+            tickFormatter={(v) => formatAxisCurrency(v, locale, displayCurrency)}
+            width={64}
           />
           <Tooltip
             formatter={(value) =>
               formatCurrency(typeof value === 'number' ? value : Number(value), locale, displayCurrency)
             }
-            contentStyle={{ fontSize: 13 }}
+            {...tip}
           />
-          <Legend wrapperStyle={{ fontSize: 13 }} />
-          <Bar dataKey="base" name={labels.base} fill={palette.budget} radius={[4, 4, 0, 0]} />
-          <Bar dataKey="comparison" name={labels.comparison} fill={palette.actual} radius={[4, 4, 0, 0]} />
+          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} iconSize={9} iconType="circle" />
+          <Bar dataKey="base" name={labels.base} fill={palette.budget} radius={[3, 3, 0, 0]} maxBarSize={24} />
+          <Bar dataKey="comparison" name={labels.comparison} fill={palette.actual} radius={[3, 3, 0, 0]} maxBarSize={24} />
         </BarChart>
       </ResponsiveContainer>
     </section>

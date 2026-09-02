@@ -412,7 +412,11 @@ export default function App() {
               labels={labels}
               threshold={threshold}
             />
-            <div className="results-toolbar">
+            {/* Threshold, export and the currency switch are one control panel
+                divided by a hairline, not three stacked bars each holding a
+                single control. */}
+            <div className="results-controls">
+              <div className="results-toolbar">
               <ThresholdControl value={threshold} onChange={setThreshold} labels={labels} />
               <ExportButton
                 rows={enrichedRows}
@@ -425,17 +429,18 @@ export default function App() {
                 formatMonth={formatMonth}
                 rateEntries={rateEntries}
               />
+              </div>
+              <section className="fx-panel-section">
+                <FxReportingPanel
+                  value={fx}
+                  onChange={setFx}
+                  dataCurrency={dataCurrency}
+                  locale={locale}
+                  labels={labels}
+                  rateEntries={rateEntries}
+                />
+              </section>
             </div>
-            <section className="fx-panel-section">
-              <FxReportingPanel
-                value={fx}
-                onChange={setFx}
-                dataCurrency={dataCurrency}
-                locale={locale}
-                labels={labels}
-                rateEntries={rateEntries}
-              />
-            </section>
             {fxActive && <FxSummary rows={enrichedRows} targetCurrency={fx.targetCurrency} locale={locale} />}
             <SummaryCharts rows={enrichedRows} locale={locale} displayCurrency={displayCurrency} labels={labels} />
             <TrendChart

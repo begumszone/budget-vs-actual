@@ -20,6 +20,21 @@ export function formatCurrency(value: number | null, locale: Locale, currency: C
   }).format(value);
 }
 
+/**
+ * Compact currency for chart axis ticks: "TRY 6M" rather than "TRY 6,000,000".
+ * A budget axis runs to seven or eight digits, and spelling every one of them
+ * out down the side of a chart both crowds the plot and forces an axis wide
+ * enough to clip. Tooltips still show the exact figure.
+ */
+export function formatAxisCurrency(value: number, locale: Locale, currency: CurrencyCode): string {
+  return new Intl.NumberFormat(LOCALE_TAGS[locale], {
+    style: 'currency',
+    currency,
+    notation: 'compact',
+    maximumFractionDigits: Math.abs(value) >= 1_000_000 ? 1 : 0,
+  }).format(value);
+}
+
 export function formatNumber(value: number | null, locale: Locale): string {
   if (value === null || Number.isNaN(value)) return 'N/A';
   return new Intl.NumberFormat(LOCALE_TAGS[locale], {
