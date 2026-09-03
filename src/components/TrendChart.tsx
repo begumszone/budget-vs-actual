@@ -56,6 +56,7 @@ export function TrendChart({ rows, locale, displayCurrency, labels, formatMonth 
   return (
     <section className="chart-section">
       <h2>{t('chart.monthlyTrend')}</h2>
+      <p className="chart-section__lede">{t('chart.trendLede')}</p>
       <ResponsiveContainer width="100%" height={205}>
         <LineChart data={data} margin={{ top: 4, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid stroke={palette.grid} vertical={false} />

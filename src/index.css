@@ -1157,3 +1157,13 @@ table.variance-table {
 .chart-section__plot {
   margin: 0 auto;
 }
+
+/* A plain-language line under a chart title. A finance reader should not have
+   to decode what a chart shows before deciding whether to read it. */
+.chart-section__lede {
+  margin: -6px 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  max-width: 76ch;
+}

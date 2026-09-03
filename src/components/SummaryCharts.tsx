@@ -60,6 +60,7 @@ export function SummaryCharts({ rows, locale, displayCurrency, labels }: Props) 
           comparison: labels.comparison,
         })}
       </h2>
+      <p className="chart-section__lede">{t('chart.deptLede')}</p>
       {/* With two or three cost centres, a full-width plot leaves the bars
           stranded in empty space. Cap the plot instead of fattening the bars:
           the marks stay the width the eye can compare accurately, and the

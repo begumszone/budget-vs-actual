@@ -148,6 +148,11 @@ const en: Dict = {
   'chart.byAccount': '{base} vs {comparison} by account',
   'chart.monthlyTrend': 'Monthly trend',
   'chart.unassigned': 'Unassigned',
+  'chart.varianceByDept': 'Where the variance is, by cost centre',
+  'chart.varianceByAccount': 'Where the variance is, by account',
+  'chart.varianceLede': 'Each bar is {comparison} minus {base}. Red is the direction you called bad; green is the direction you wanted.',
+  'chart.deptLede': 'The two figures side by side, so you can see the size of each cost centre as well as the gap.',
+  'chart.trendLede': 'How the two lines ran month by month. Where they separate is where the variance built up.',
 
   // -- excluded rows --
   'excluded.reason.noCode': 'No account code — reads as a section heading or roll-up',
@@ -353,6 +358,11 @@ const tr: Dict = {
   'chart.byAccount': 'Hesaba göre {base} / {comparison}',
   'chart.monthlyTrend': 'Aylık seyir',
   'chart.unassigned': 'Atanmamış',
+  'chart.varianceByDept': 'Sapma nerede — masraf merkezine göre',
+  'chart.varianceByAccount': 'Sapma nerede — hesaba göre',
+  'chart.varianceLede': 'Her çubuk {comparison} eksi {base} demektir. Kırmızı sizin kötü dediğiniz yön, yeşil istediğiniz yön.',
+  'chart.deptLede': 'İki rakam yan yana; hem her masraf merkezinin büyüklüğünü hem aradaki farkı görürsünüz.',
+  'chart.trendLede': 'İki çizginin ay ay seyri. Ayrıştıkları yer, sapmanın biriktiği yerdir.',
 
   'excluded.reason.noCode': 'Hesap kodu yok — bölüm başlığı ya da toplam satırı gibi okunuyor',
   'excluded.reason.totalLabel': 'Adı toplam satırı olarak yazılmış',

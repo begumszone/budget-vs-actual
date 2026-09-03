@@ -22,6 +22,7 @@ import { HeadlineStats } from './components/HeadlineStats';
 import { YearRangeSelector } from './components/YearRangeSelector';
 import { ThresholdControl } from './components/ThresholdControl';
 import { LocaleToggle } from './components/LocaleToggle';
+import { VarianceByGroupChart } from './components/VarianceByGroupChart';
 import { ThemeToggle } from './components/ThemeToggle';
 import { Faq } from './components/Faq';
 import { LocaleContext, translate } from './lib/i18n';
@@ -453,6 +454,13 @@ export default function App() {
               </section>
             </div>
             {fxActive && <FxSummary rows={enrichedRows} targetCurrency={fx.targetCurrency} locale={locale} />}
+            <VarianceByGroupChart
+              rows={enrichedRows}
+              locale={locale}
+              displayCurrency={displayCurrency}
+              labels={labels}
+              threshold={threshold}
+            />
             <SummaryCharts rows={enrichedRows} locale={locale} displayCurrency={displayCurrency} labels={labels} />
             <TrendChart
               rows={enrichedRows}
