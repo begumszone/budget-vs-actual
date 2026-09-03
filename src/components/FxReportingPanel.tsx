@@ -1,3 +1,4 @@
+import { useLocale, useT } from '../lib/i18n';
 import { CURRENCIES, type CurrencyCode, type FxReportingSettings, type Locale } from '../types';
 import type { ModeLabels } from '../lib/modeLabels';
 import type { MonthlyRateEntry } from '../lib/monthlyRates';
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export function FxReportingPanel({ value, onChange, dataCurrency, locale, labels, rateEntries }: Props) {
+  const t = useT();
+  const localeTag = useLocale() === 'tr' ? 'tr-TR' : 'en-US';
   const sameCurrency = value.targetCurrency === dataCurrency;
 
   return (
@@ -23,13 +26,13 @@ export function FxReportingPanel({ value, onChange, dataCurrency, locale, labels
           checked={value.enabled}
           onChange={(e) => onChange({ ...value, enabled: e.target.checked })}
         />
-        Report in a different currency
+        {t('fxPanel.toggle')}
       </label>
 
       {value.enabled && (
         <div className="fx-panel__body">
           <label className="field-select">
-            Target currency
+            {t('fxPanel.target')}
             <select
               value={value.targetCurrency}
               onChange={(e) => onChange({ ...value, targetCurrency: e.target.value as CurrencyCode })}
@@ -44,17 +47,17 @@ export function FxReportingPanel({ value, onChange, dataCurrency, locale, labels
 
           {sameCurrency ? (
             <p className="fx-panel__note">
-              Target currency matches the data currency ({dataCurrency}) — there's nothing to convert, so the
-              variance split is hidden.
+              {t('fxPanel.sameCurrency', { currency: dataCurrency })}
             </p>
           ) : (
             <>
               <p className="fx-panel__note">
-                Convention: the FX effect is measured on <strong>{labels.comparison.toLowerCase()} volume</strong> —
-                it's the difference the rate movement alone would make if the {labels.comparison.toLowerCase()}{' '}
-                amount had been converted at the {labels.base.toLowerCase()} rate instead. Once enabled, every
-                figure on screen and in the export switches to {value.targetCurrency} — nothing stays in{' '}
-                {dataCurrency}.
+                {t('fxPanel.convention', {
+                  comparison: labels.comparison.toLocaleLowerCase(localeTag),
+                  base: labels.base.toLocaleLowerCase(localeTag),
+                  target: value.targetCurrency,
+                  data: dataCurrency,
+                })}
               </p>
               <RateTableEditor
                 entries={rateEntries}

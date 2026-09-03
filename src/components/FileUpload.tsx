@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { AnalysisMode, ParsedWorkbook, UploadMode } from '../types';
 import { parseWorkbook, FileParseError } from '../lib/parseFile';
-import { describeSample, getBudgetVsActualSample, getYoySample } from '../lib/sampleData';
+import { getBudgetVsActualSample, getYoySample } from '../lib/sampleData';
+import { useT } from '../lib/i18n';
 
 interface TwoFilesResult {
   mode: 'two-files';
@@ -59,13 +60,10 @@ function FilePicker({
   );
 }
 
-const BENEFITS = [
-  { title: 'Nothing leaves your browser', body: 'Files are parsed locally. No upload, no account, no server.' },
-  { title: 'Your column names, not ours', body: 'Headers are auto-detected and you can correct any guess.' },
-  { title: 'Back to Excel in one click', body: 'Export the variance detail, YTD totals and a summary sheet.' },
-];
+const BENEFITS = [1, 2, 3];
 
 export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props) {
+  const t = useT();
   const [budgetFile, setBudgetFile] = useState<File | null>(null);
   const [actualFile, setActualFile] = useState<File | null>(null);
   const [combinedFile, setCombinedFile] = useState<File | null>(null);
@@ -80,7 +78,7 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
     try {
       if (analysisMode === 'yoy') {
         if (!yoyFile) {
-          setErrors({ yoy: 'Please choose an actuals file.' });
+          setErrors({ yoy: t('upload.err.yoy') });
           return;
         }
         const file = await parseWorkbook(yoyFile);
@@ -88,8 +86,8 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
       } else if (mode === 'two-files') {
         if (!budgetFile || !actualFile) {
           setErrors({
-            budget: budgetFile ? undefined : 'Please choose a budget file.',
-            actual: actualFile ? undefined : 'Please choose an actual file.',
+            budget: budgetFile ? undefined : t('upload.err.budget'),
+            actual: actualFile ? undefined : t('upload.err.actual'),
           });
           return;
         }
@@ -104,7 +102,7 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
         onReady({ mode: 'two-files', budget, actual });
       } else {
         if (!combinedFile) {
-          setErrors({ combined: 'Please choose a file.' });
+          setErrors({ combined: t('upload.err.combined') });
           return;
         }
         const combined = await parseWorkbook(combinedFile);
@@ -117,7 +115,7 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
       } else if (err instanceof FileParseError) {
         setErrors({ combined: err.message, yoy: err.message });
       } else {
-        setErrors({ combined: 'Something went wrong while reading the file.', yoy: 'Something went wrong while reading the file.' });
+        setErrors({ combined: t('upload.err.read'), yoy: t('upload.err.read') });
       }
     } finally {
       setLoading(false);
@@ -145,10 +143,10 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
   const sampleCta = (
     <div className="sample-cta">
       <button className="btn btn--primary btn--lg" onClick={handleTrySample} disabled={loadingSample}>
-        {loadingSample ? 'Loading sample…' : '▸ Try it with sample data'}
+        {loadingSample ? t('upload.loadingSample') : t('upload.trySample')}
       </button>
       <p className="sample-cta__note">
-        No file handy? {describeSample(analysisMode)}.
+        {t('upload.noFile', { description: t(analysisMode === 'yoy' ? 'upload.sample.yoy' : 'upload.sample.bva') })}
       </p>
     </div>
   );
@@ -157,27 +155,23 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
     <section className="upload-panel">
       <div className="hero">
         <h2 className="hero__title">
-          {analysisMode === 'yoy'
-            ? 'Compare this year against last year, line by line'
-            : 'See exactly where you landed off budget'}
+          {t(analysisMode === 'yoy' ? 'upload.hero.yoy' : 'upload.hero.bva')}
         </h2>
         <p className="hero__subtitle">
-          {analysisMode === 'yoy'
-            ? 'Upload one actuals export covering both years. Every account is matched month to month, so new and discontinued lines stand out instead of disappearing.'
-            : 'Upload your budget and your actuals. Every account is matched by month and department, variances are calculated for you, and anything past your threshold is flagged.'}
+          {t(analysisMode === 'yoy' ? 'upload.sub.yoy' : 'upload.sub.bva')}
         </p>
         {sampleCta}
       </div>
 
       <div className="upload-divider">
-        <span>or use your own files</span>
+        <span>{t('upload.orOwn')}</span>
       </div>
 
       {analysisMode === 'yoy' ? (
         <div className="upload-grid upload-grid--single">
           <FilePicker
-            label="Actuals file"
-            hint="One file covering both years — you'll pick which two to compare next."
+            label={t('upload.actualsFile')}
+            hint={t('upload.actualsHint')}
             file={yoyFile}
             onFile={setYoyFile}
             error={errors.yoy ?? null}
@@ -185,7 +179,7 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
         </div>
       ) : (
         <>
-          <div className="mode-toggle" role="radiogroup" aria-label="Upload mode">
+          <div className="mode-toggle" role="radiogroup" aria-label={t('upload.modeLabel')}>
             <label>
               <input
                 type="radio"
@@ -193,7 +187,7 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
                 checked={mode === 'two-files'}
                 onChange={() => onModeChange('two-files')}
               />
-              Two separate files
+              {t('upload.twoFiles')}
             </label>
             <label>
               <input
@@ -202,22 +196,22 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
                 checked={mode === 'single-file'}
                 onChange={() => onModeChange('single-file')}
               />
-              One combined file
+              {t('upload.oneFile')}
             </label>
           </div>
 
           {mode === 'two-files' ? (
             <div className="upload-grid">
               <FilePicker
-                label="Budget file"
-                hint="CSV or Excel"
+                label={t('upload.budgetFile')}
+                hint={t('upload.csvOrExcel')}
                 file={budgetFile}
                 onFile={setBudgetFile}
                 error={errors.budget ?? null}
               />
               <FilePicker
-                label="Actual file"
-                hint="CSV or Excel"
+                label={t('upload.actualFile')}
+                hint={t('upload.csvOrExcel')}
                 file={actualFile}
                 onFile={setActualFile}
                 error={errors.actual ?? null}
@@ -226,8 +220,8 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
           ) : (
             <div className="upload-grid upload-grid--single">
               <FilePicker
-                label="Combined file"
-                hint="Must contain both a budget and an actual amount column"
+                label={t('upload.combinedFile')}
+                hint={t('upload.combinedHint')}
                 file={combinedFile}
                 onFile={setCombinedFile}
                 error={errors.combined ?? null}
@@ -238,14 +232,14 @@ export function FileUpload({ analysisMode, mode, onModeChange, onReady }: Props)
       )}
 
       <button className="btn btn--secondary" onClick={handleContinue} disabled={loading}>
-        {loading ? 'Reading files…' : 'Continue to column mapping'}
+        {loading ? t('upload.reading') : t('upload.continue')}
       </button>
 
       <ul className="benefit-list">
-        {BENEFITS.map((b) => (
-          <li key={b.title} className="benefit-list__item">
-            <span className="benefit-list__title">{b.title}</span>
-            <span className="benefit-list__body">{b.body}</span>
+        {BENEFITS.map((n) => (
+          <li key={n} className="benefit-list__item">
+            <span className="benefit-list__title">{t(`benefit.${n}.title`)}</span>
+            <span className="benefit-list__body">{t(`benefit.${n}.body`)}</span>
           </li>
         ))}
       </ul>

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { CurrencyCode, Locale, ThresholdSettings } from '../types';
 import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
 import { formatCurrency, formatPercent } from '../lib/formatters';
+import { useT } from '../lib/i18n';
 import type { ModeLabels } from '../lib/modeLabels';
 
 interface Props {
@@ -19,6 +20,7 @@ interface Props {
  * tables do, so it can never disagree with them.
  */
 export function HeadlineStats({ rows, locale, displayCurrency, labels, threshold }: Props) {
+  const t = useT();
   const stats = useMemo(() => {
     let base = 0;
     let comparison = 0;
@@ -51,7 +53,7 @@ export function HeadlineStats({ rows, locale, displayCurrency, labels, threshold
     return (
       <section className="headline-stats headline-stats--empty">
         <p className="headline-stats__empty-note">
-          Enter the monthly exchange rates below to see totals — {rows.length} rows are loaded and waiting.
+          {t('stats.awaitingRates', { n: rows.length })}
         </p>
       </section>
     );
@@ -70,31 +72,31 @@ export function HeadlineStats({ rows, locale, displayCurrency, labels, threshold
   return (
     <section className="headline-stats">
       <div className="headline-stats__tile">
-        <span className="headline-stats__label">Total {labels.base}</span>
+        <span className="headline-stats__label">{t('stats.total', { name: labels.base })}</span>
         <span className="headline-stats__value">{formatCurrency(stats.base, locale, displayCurrency)}</span>
       </div>
       <div className="headline-stats__tile">
-        <span className="headline-stats__label">Total {labels.comparison}</span>
+        <span className="headline-stats__label">{t('stats.total', { name: labels.comparison })}</span>
         <span className="headline-stats__value">{formatCurrency(stats.comparison, locale, displayCurrency)}</span>
       </div>
       <div className={`headline-stats__tile headline-stats__tile--${varianceTone}`}>
-        <span className="headline-stats__label">Variance</span>
+        <span className="headline-stats__label">{t('stats.variance')}</span>
         <span className="headline-stats__value">{formatCurrency(stats.variance, locale, displayCurrency)}</span>
         <span className="headline-stats__meta">{formatPercent(stats.variancePercent, locale)}</span>
       </div>
       <div className="headline-stats__tile">
-        <span className="headline-stats__label">Flagged lines</span>
+        <span className="headline-stats__label">{t('stats.flagged')}</span>
         <span className="headline-stats__value">{stats.significant}</span>
         <span className="headline-stats__meta">
           {stats.blockedByMissingRate > 0
-            ? `of ${stats.converted} converted rows`
-            : `of ${rows.length} rows`}
+            ? t('stats.ofConverted', { n: stats.converted })
+            : t('stats.ofRows', { n: rows.length })}
         </span>
       </div>
       {stats.blockedByMissingRate > 0 && (
         <p className="headline-stats__note">
-          ⚠ {stats.blockedByMissingRate} of {rows.length} rows are excluded from these totals — no exchange rate
-          entered for their month yet.
+          {'\u26A0 '}
+          {t('stats.someExcluded', { blocked: stats.blockedByMissingRate, total: rows.length })}
         </p>
       )}
     </section>

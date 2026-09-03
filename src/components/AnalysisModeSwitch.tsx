@@ -1,4 +1,5 @@
 import type { AnalysisMode } from '../types';
+import { useT } from '../lib/i18n';
 
 interface Props {
   value: AnalysisMode;
@@ -6,21 +7,22 @@ interface Props {
 }
 
 export function AnalysisModeSwitch({ value, onChange }: Props) {
+  const t = useT();
   return (
-    <div className="mode-switch" role="radiogroup" aria-label="Analysis mode">
+    <div className="mode-switch" role="radiogroup" aria-label={t('analysisMode.label')}>
       <button
         type="button"
         className={value === 'budget-vs-actual' ? 'mode-switch__btn mode-switch__btn--active' : 'mode-switch__btn'}
         onClick={() => onChange('budget-vs-actual')}
       >
-        Budget vs Actual
+        {t('mode.bva')}
       </button>
       <button
         type="button"
         className={value === 'yoy' ? 'mode-switch__btn mode-switch__btn--active' : 'mode-switch__btn'}
         onClick={() => onChange('yoy')}
       >
-        Year over Year
+        {t('mode.yoy')}
       </button>
     </div>
   );

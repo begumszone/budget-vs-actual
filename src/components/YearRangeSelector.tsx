@@ -1,3 +1,4 @@
+import { useT } from '../lib/i18n';
 interface Props {
   years: number[];
   baseYear: number | null;
@@ -6,13 +7,12 @@ interface Props {
 }
 
 export function YearRangeSelector({ years, baseYear, comparisonYear, onChange }: Props) {
+  const t = useT();
   if (years.length < 2) {
     return (
       <div className="year-range-selector">
         <p className="fx-panel__note">
-          {years.length === 0
-            ? "We couldn't detect any years in the mapped month column yet -- check the mapping above."
-            : `This file only contains one year of data (${years[0]}). Year-over-year comparison needs at least two.`}
+          {years.length === 0 ? t('years.none') : t('years.onlyOne', { year: years[0] })}
         </p>
       </div>
     );
@@ -21,12 +21,12 @@ export function YearRangeSelector({ years, baseYear, comparisonYear, onChange }:
   return (
     <div className="year-range-selector">
       <label className="field-select">
-        Base year
+        {t('years.base')}
         <select
           value={baseYear ?? ''}
           onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value), comparisonYear)}
         >
-          <option value="">— Select —</option>
+          <option value="">{t('years.select')}</option>
           {years.map((y) => (
             <option key={y} value={y}>
               {y}
@@ -35,12 +35,12 @@ export function YearRangeSelector({ years, baseYear, comparisonYear, onChange }:
         </select>
       </label>
       <label className="field-select">
-        Comparison year
+        {t('years.comparison')}
         <select
           value={comparisonYear ?? ''}
           onChange={(e) => onChange(baseYear, e.target.value === '' ? null : Number(e.target.value))}
         >
-          <option value="">— Select —</option>
+          <option value="">{t('years.select')}</option>
           {years.map((y) => (
             <option key={y} value={y}>
               {y}
@@ -49,7 +49,7 @@ export function YearRangeSelector({ years, baseYear, comparisonYear, onChange }:
         </select>
       </label>
       {baseYear !== null && comparisonYear !== null && baseYear === comparisonYear && (
-        <p className="fx-panel__note">Base year and comparison year must be different.</p>
+        <p className="fx-panel__note">{t('years.mustDiffer')}</p>
       )}
     </div>
   );

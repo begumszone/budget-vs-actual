@@ -34,14 +34,14 @@
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme='light'])) {
     color-scheme: dark;
-    --surface-1: #181e27;
-    --surface-2: #0e1218;
-    --surface-sunken: #1d242e;
+    --surface-1: #1c232d;
+    --surface-2: #141920;
+    --surface-sunken: #222a35;
     --text-primary: #e9edf2;
     --text-secondary: #a6b0bd;
     --text-muted: #7b8593;
-    --border: #242c37;
-    --border-strong: #333d4b;
+    --border: #2b3541;
+    --border-strong: #3b4757;
     --series-budget: #3987e5;
     --series-actual: #d95926;
     --status-good: #3fb27a;
@@ -58,14 +58,14 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --surface-1: #181e27;
-  --surface-2: #0e1218;
-  --surface-sunken: #1d242e;
+  --surface-1: #1c232d;
+  --surface-2: #141920;
+  --surface-sunken: #222a35;
   --text-primary: #e9edf2;
   --text-secondary: #a6b0bd;
   --text-muted: #7b8593;
-  --border: #242c37;
-  --border-strong: #333d4b;
+  --border: #2b3541;
+  --border-strong: #3b4757;
   --series-budget: #3987e5;
   --series-actual: #d95926;
   --status-good: #3fb27a;
@@ -1047,4 +1047,113 @@ table.variance-table {
   color: var(--text-muted);
   white-space: normal;
   max-width: 320px;
+}
+
+
+/* --- Theme switch --- */
+
+.theme-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.theme-toggle__btn {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  padding: 8px 10px;
+  border: none;
+  background: var(--surface-1);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.theme-toggle__btn:hover {
+  color: var(--text-primary);
+}
+
+.theme-toggle__btn--active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* --- Frequently asked questions --- */
+
+.faq {
+  margin-top: 40px;
+  padding-top: 26px;
+  border-top: 1px solid var(--border);
+}
+
+.faq__title {
+  font-size: 17px;
+  margin-bottom: 2px;
+}
+
+.faq__subtitle {
+  margin: 0 0 16px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.faq__list {
+  display: grid;
+  gap: 8px;
+}
+
+.faq__item {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 16px;
+}
+
+.faq__item[open] {
+  border-color: var(--border-strong);
+}
+
+.faq__question {
+  cursor: pointer;
+  padding: 13px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.faq__question::-webkit-details-marker {
+  display: none;
+}
+
+.faq__question::before {
+  content: '+';
+  color: var(--accent);
+  font-size: 16px;
+  font-weight: 600;
+  width: 12px;
+  flex: none;
+}
+
+.faq__item[open] .faq__question::before {
+  content: '\2212';
+}
+
+.faq__answer {
+  margin: 0;
+  padding: 0 0 15px 22px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 78ch;
+}
+
+/* A plot narrower than its panel when there are few categories -- see
+   SummaryCharts. Centred so the panel does not look lopsided. */
+.chart-section__plot {
+  margin: 0 auto;
 }

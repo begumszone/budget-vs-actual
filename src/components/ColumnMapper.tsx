@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react';
 import type { DualAmountMapping, ParsedFile, SingleAmountMapping } from '../types';
 import { suggestColumn } from '../lib/suggestMapping';
+import { useT } from '../lib/i18n';
 
 interface FieldSpec {
   key: string;
-  label: string;
+  /** Dictionary key, resolved at render so the label follows the locale. */
+  labelKey?: string;
+  /** Already-localised text, for labels that vary with the analysis mode. */
+  label?: string;
   required: boolean;
 }
 
 const COMMON_SPECS: FieldSpec[] = [
-  { key: 'account_code', label: 'Account code', required: true },
-  { key: 'account_name', label: 'Account name', required: false },
-  { key: 'department', label: 'Department', required: false },
-  { key: 'month', label: 'Month / period', required: true },
+  { key: 'account_code', labelKey: 'map.accountCode', required: true },
+  { key: 'account_name', labelKey: 'map.accountName', required: false },
+  { key: 'department', labelKey: 'map.department', required: false },
+  { key: 'month', labelKey: 'map.month', required: true },
 ];
 
 function FieldSelect({
@@ -26,14 +30,15 @@ function FieldSelect({
   value: string | null;
   onChange: (value: string | null) => void;
 }) {
+  const t = useT();
   return (
     <div className="field-select">
       <label>
-        {spec.label}
+        {spec.labelKey ? t(spec.labelKey) : spec.label}
         {spec.required && <span className="field-select__required"> *</span>}
       </label>
       <select value={value ?? ''} onChange={(e) => onChange(e.target.value || null)}>
-        <option value="">— Not mapped —</option>
+        <option value="">{t('map.notMapped')}</option>
         {headers.map((h) => (
           <option key={h} value={h}>
             {h}
@@ -103,6 +108,7 @@ interface DualFileMapperProps {
 }
 
 export function DualAmountFileMapper({ file, onChange }: DualFileMapperProps) {
+  const t = useT();
   const [mapping, setMapping] = useState<DualAmountMapping>(() => ({
     ...(suggestAll(file.headers) as DualAmountMapping),
     budget_amount: suggestColumn('budget_amount', file.headers),
@@ -119,7 +125,7 @@ export function DualAmountFileMapper({ file, onChange }: DualFileMapperProps) {
 
   return (
     <div className="mapping-block">
-      <h3>Column mapping</h3>
+      <h3>{t('map.title')}</h3>
       <p className="mapping-block__file">{file.fileName}</p>
       <div className="mapping-grid">
         {COMMON_SPECS.map((spec) => (
@@ -132,13 +138,13 @@ export function DualAmountFileMapper({ file, onChange }: DualFileMapperProps) {
           />
         ))}
         <FieldSelect
-          spec={{ key: 'budget_amount', label: 'Budget amount', required: true }}
+          spec={{ key: 'budget_amount', labelKey: 'map.budgetAmount', required: true }}
           headers={file.headers}
           value={mapping.budget_amount}
           onChange={(value) => setMapping((prev) => ({ ...prev, budget_amount: value }))}
         />
         <FieldSelect
-          spec={{ key: 'actual_amount', label: 'Actual amount', required: true }}
+          spec={{ key: 'actual_amount', labelKey: 'map.actualAmount', required: true }}
           headers={file.headers}
           value={mapping.actual_amount}
           onChange={(value) => setMapping((prev) => ({ ...prev, actual_amount: value }))}

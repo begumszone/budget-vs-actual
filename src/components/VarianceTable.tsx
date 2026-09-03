@@ -1,3 +1,4 @@
+import { useT } from '../lib/i18n';
 import { useMemo, useState } from 'react';
 import type { CurrencyCode, Locale } from '../types';
 import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function VarianceTable({ rows, locale, displayCurrency, fxActive, targetCurrency, labels, formatMonth }: Props) {
+  const t = useT();
   const [sortKey, setSortKey] = useState<SortKey>('displayVariancePercent');
 
   const matchedRows = useMemo(() => rows.filter((r) => r.status === 'matched'), [rows]);
@@ -40,14 +42,14 @@ export function VarianceTable({ rows, locale, displayCurrency, fxActive, targetC
   return (
     <section className="variance-table-section">
       <div className="section-header">
-        <h2>Variance detail</h2>
+        <h2>{t('table.varianceDetail')}</h2>
         <label className="sort-select">
-          Sort by
+          {t('table.sortBy')}
           <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}>
-            <option value="displayVariancePercent">Biggest variance (%)</option>
-            <option value="displayVariance">Biggest variance (amount)</option>
-            <option value="account_code">Account code</option>
-            <option value="month">Month</option>
+            <option value="displayVariancePercent">{t('sort.variancePct')}</option>
+            <option value="displayVariance">{t('sort.varianceAmount')}</option>
+            <option value="account_code">{t('sort.accountCode')}</option>
+            <option value="month">{t('sort.month')}</option>
           </select>
         </label>
       </div>
@@ -55,9 +57,9 @@ export function VarianceTable({ rows, locale, displayCurrency, fxActive, targetC
         <table className="variance-table">
           <thead>
             <tr>
-              <th>Account</th>
-              <th>Department</th>
-              <th>Month</th>
+              <th>{t('col.account')}</th>
+              <th>{t('col.department')}</th>
+              <th>{t('col.month')}</th>
               <th className="num">{labels.base}</th>
               <th className="num">{labels.comparison}</th>
               <th className="num">Variance</th>

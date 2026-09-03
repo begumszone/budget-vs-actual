@@ -22,6 +22,10 @@ import { HeadlineStats } from './components/HeadlineStats';
 import { YearRangeSelector } from './components/YearRangeSelector';
 import { ThresholdControl } from './components/ThresholdControl';
 import { LocaleToggle } from './components/LocaleToggle';
+import { ThemeToggle } from './components/ThemeToggle';
+import { Faq } from './components/Faq';
+import { LocaleContext, translate } from './lib/i18n';
+import { useTheme } from './hooks/useTheme';
 import { DataCurrencySelector } from './components/DataCurrencySelector';
 import { FxReportingPanel } from './components/FxReportingPanel';
 import { FxSummary } from './components/FxSummary';
@@ -67,6 +71,7 @@ export default function App() {
   const [mappedData, setMappedData] = useState<MappedData | null>(null);
   const [threshold, setThreshold] = useState<ThresholdSettings>(DEFAULT_THRESHOLD);
   const [locale, setLocale] = useState<Locale>('en');
+  const { preference: theme, setTheme } = useTheme();
   const [dataCurrency, setDataCurrency] = useState<CurrencyCode>('TRY');
   const [fx, setFx] = useState<FxReportingSettings>(DEFAULT_FX);
   const [yearSelection, setYearSelection] = useState<YearSelection>(DEFAULT_YEARS);
@@ -78,7 +83,10 @@ export default function App() {
   const [combinedMapping, setCombinedMapping] = useState<{ mapping: DualAmountMapping; valid: boolean } | null>(null);
   const [yoyMapping, setYoyMapping] = useState<{ mapping: SingleAmountMapping; valid: boolean } | null>(null);
 
-  const labels = useMemo(() => getModeLabels(analysisMode, yearSelection), [analysisMode, yearSelection]);
+  const labels = useMemo(
+    () => getModeLabels(analysisMode, locale, yearSelection),
+    [analysisMode, locale, yearSelection],
+  );
   const formatMonth = useMemo(() => makeMonthFormatter(analysisMode, locale), [analysisMode, locale]);
 
   /** Sheet/header/layout choices per uploaded file, keyed by role. */
@@ -228,7 +236,7 @@ export default function App() {
     if (mode === analysisMode) return;
     if (stage !== 'upload') {
       const confirmed = window.confirm(
-        'Switching analysis mode will clear your current upload and results. Continue?',
+        translate(locale, 'mode.switchConfirm'),
       );
       if (!confirmed) return;
     }
@@ -280,16 +288,20 @@ export default function App() {
             )
           : false;
 
+  const t = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
+
   return (
+    <LocaleContext.Provider value={locale}>
     <div className="app">
       <header className="app-header">
         <div>
-          <h1>Budget vs Actual</h1>
-          <p className="app-header__subtitle">Compare two periods and instantly see variances, entirely in your browser.</p>
+          <h1>{t('app.title')}</h1>
+          <p className="app-header__subtitle">{t('app.subtitle')}</p>
         </div>
         <div className="app-header__controls">
           <DataCurrencySelector value={dataCurrency} onChange={setDataCurrency} />
           <LocaleToggle value={locale} onChange={setLocale} />
+          <ThemeToggle value={theme} onChange={setTheme} />
           {stage === 'results' && <ResetButton onReset={handleReset} />}
         </div>
       </header>
@@ -306,16 +318,15 @@ export default function App() {
 
         {stage === 'mapping' && uploadResult && (
           <section className="mapping-panel">
-            <h2>2. Map your columns</h2>
+            <h2>{t('mapping.title')}</h2>
             <p className="mapping-panel__hint">
-              We've pre-filled our best guess for each field — adjust any that look wrong. Fields marked
-              with * are required.
+              {t('mapping.hint')}
             </p>
             {uploadResult.mode === 'two-files' && resolved?.mode === 'two-files' && (
               <div className="mapping-columns">
                 <div className="mapping-block">
                   <SheetSetup
-                    title="Budget file"
+                    title={t('upload.budgetFile')}
                     workbook={uploadResult.budget}
                     selection={selectionFor('budget', uploadResult.budget)}
                     headers={resolved.budget.rawHeaders}
@@ -323,7 +334,7 @@ export default function App() {
                   />
                   <SingleAmountFileMapper
                     key={`budget-${resolved.budget.file.headers.join('|')}`}
-                    title="Columns"
+                    title={t('mapping.columns')}
                     file={resolved.budget.file}
                     amountLabel="Budget amount"
                     onChange={(mapping, valid) => setBudgetMapping({ mapping, valid })}
@@ -331,7 +342,7 @@ export default function App() {
                 </div>
                 <div className="mapping-block">
                   <SheetSetup
-                    title="Actual file"
+                    title={t('upload.actualFile')}
                     workbook={uploadResult.actual}
                     selection={selectionFor('actual', uploadResult.actual)}
                     headers={resolved.actual.rawHeaders}
@@ -339,7 +350,7 @@ export default function App() {
                   />
                   <SingleAmountFileMapper
                     key={`actual-${resolved.actual.file.headers.join('|')}`}
-                    title="Columns"
+                    title={t('mapping.columns')}
                     file={resolved.actual.file}
                     amountLabel="Actual amount"
                     onChange={(mapping, valid) => setActualMapping({ mapping, valid })}
@@ -350,7 +361,7 @@ export default function App() {
             {uploadResult.mode === 'single-file' && resolved?.mode === 'single-file' && (
               <div className="mapping-block">
                 <SheetSetup
-                  title="Combined file"
+                  title={t('upload.combinedFile')}
                   workbook={uploadResult.combined}
                   selection={selectionFor('combined', uploadResult.combined)}
                   headers={resolved.combined.rawHeaders}
@@ -367,7 +378,7 @@ export default function App() {
               <>
                 <div className="mapping-block">
                   <SheetSetup
-                    title="Actuals file"
+                    title={t('upload.actualsFile')}
                     workbook={uploadResult.file}
                     selection={selectionFor('yoy', uploadResult.file)}
                     headers={resolved.file.rawHeaders}
@@ -375,14 +386,14 @@ export default function App() {
                   />
                   <SingleAmountFileMapper
                     key={`yoy-${resolved.file.file.headers.join('|')}`}
-                    title="Columns"
+                    title={t('mapping.columns')}
                     file={resolved.file.file}
                     amountLabel="Amount"
                     onChange={(mapping, valid) => setYoyMapping({ mapping, valid })}
                   />
                 </div>
                 <div className="mapping-block">
-                  <h3>Which years are you comparing?</h3>
+                  <h3>{t('mapping.whichYears')}</h3>
                   <YearRangeSelector
                     years={availableYears}
                     baseYear={yearSelection.baseYear}
@@ -394,10 +405,10 @@ export default function App() {
             )}
             <div className="mapping-panel__actions">
               <button className="btn btn--ghost" onClick={handleReset}>
-                Back / start over
+                {t('mapping.back')}
               </button>
               <button className="btn btn--primary" onClick={handleConfirmMapping} disabled={!mappingValid}>
-                Confirm mapping &amp; calculate variance
+                {t('mapping.confirm')}
               </button>
             </div>
           </section>
@@ -484,6 +495,9 @@ export default function App() {
           </section>
         )}
       </main>
+
+      <Faq />
     </div>
+    </LocaleContext.Provider>
   );
 }

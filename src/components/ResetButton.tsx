@@ -1,18 +1,21 @@
+import { useT } from '../lib/i18n';
+
 interface Props {
   onReset: () => void;
 }
 
 export function ResetButton({ onReset }: Props) {
+  const t = useT();
   return (
     <button
       className="btn btn--ghost"
       onClick={() => {
-        if (window.confirm('Start over? This clears the uploaded files, mapping, and results.')) {
+        if (window.confirm(t('reset.confirm'))) {
           onReset();
         }
       }}
     >
-      Reset / start over
+      {t('reset.label')}
     </button>
   );
 }

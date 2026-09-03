@@ -13,6 +13,7 @@ import type { CurrencyCode, Locale } from '../types';
 import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
 import { formatAxisCurrency, formatCurrency } from '../lib/formatters';
 import { getChartPalette, tooltipStyles } from '../lib/chartPalette';
+import { useT } from '../lib/i18n';
 import { usePrefersDark } from '../hooks/usePrefersDark';
 import type { ModeLabels } from '../lib/modeLabels';
 
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function TrendChart({ rows, locale, displayCurrency, labels, formatMonth }: Props) {
+  const t = useT();
   const dark = usePrefersDark();
   const palette = getChartPalette(dark);
   const tip = tooltipStyles(palette);
@@ -53,7 +55,7 @@ export function TrendChart({ rows, locale, displayCurrency, labels, formatMonth 
 
   return (
     <section className="chart-section">
-      <h2>Monthly trend</h2>
+      <h2>{t('chart.monthlyTrend')}</h2>
       <ResponsiveContainer width="100%" height={205}>
         <LineChart data={data} margin={{ top: 4, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid stroke={palette.grid} vertical={false} />

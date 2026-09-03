@@ -1,3 +1,4 @@
+import { useT } from '../lib/i18n';
 import type { ParsedWorkbook, PeriodLayout, SheetSelection } from '../types';
 import { detectMonthColumns } from '../lib/unpivot';
 import { detectSelectionForSheet } from '../lib/resolveSheet';
@@ -17,6 +18,7 @@ interface Props {
  * wrong.
  */
 export function SheetSetup({ workbook, selection, headers, onChange, title }: Props) {
+  const t = useT();
   const sheet = workbook.sheets[selection.sheetIndex];
   const headerRowOptions = sheet ? sheet.grid.slice(0, Math.min(sheet.grid.length, 15)) : [];
   const monthLike = detectMonthColumns(headers);
@@ -44,7 +46,7 @@ export function SheetSetup({ workbook, selection, headers, onChange, title }: Pr
       <div className="sheet-setup__row">
         {workbook.sheets.length > 1 && (
           <label className="field-select">
-            Sheet
+            {t('sheet.sheet')}
             <select
               value={selection.sheetIndex}
               onChange={(e) => {
@@ -70,7 +72,7 @@ export function SheetSetup({ workbook, selection, headers, onChange, title }: Pr
         )}
 
         <label className="field-select">
-          Header row
+          {t('sheet.headerRow')}
           <select
             value={selection.headerRowIndex}
             onChange={(e) =>
@@ -84,7 +86,7 @@ export function SheetSetup({ workbook, selection, headers, onChange, title }: Pr
                 .join(' · ');
               return (
                 <option key={i} value={i}>
-                  Row {i + 1}: {preview.slice(0, 60) || '(blank)'}
+                  {t('sheet.rowPreview', { n: i + 1, preview: preview.slice(0, 60) || t('sheet.blank') })}
                 </option>
               );
             })}
@@ -93,7 +95,7 @@ export function SheetSetup({ workbook, selection, headers, onChange, title }: Pr
       </div>
 
       <fieldset className="sheet-setup__layout">
-        <legend>How are the months laid out?</legend>
+        <legend>{t('sheet.layoutLegend')}</legend>
         <label>
           <input
             type="radio"
@@ -101,7 +103,7 @@ export function SheetSetup({ workbook, selection, headers, onChange, title }: Pr
             checked={selection.layout === 'long'}
             onChange={() => setLayout('long')}
           />
-          One row per month <span className="sheet-setup__hint">(a Period / Month column)</span>
+          {t('sheet.longOption')} <span className="sheet-setup__hint">{t('sheet.longHint')}</span>
         </label>
         <label>
           <input
@@ -110,16 +112,14 @@ export function SheetSetup({ workbook, selection, headers, onChange, title }: Pr
             checked={selection.layout === 'wide'}
             onChange={() => setLayout('wide')}
           />
-          A column per month <span className="sheet-setup__hint">(Jan, Feb, Mar… across the top)</span>
+          {t('sheet.wideOption')} <span className="sheet-setup__hint">{t('sheet.wideHint')}</span>
         </label>
       </fieldset>
 
       {selection.layout === 'wide' && (
         <div className="month-columns">
           <p className="sheet-setup__hint">
-            {monthLike.length > 0
-              ? 'These columns were recognised as months — untick anything that is not a period.'
-              : 'No month-like column headers were recognised. Tick the period columns yourself.'}
+            {t(monthLike.length > 0 ? 'sheet.monthsFound' : 'sheet.monthsNotFound')}
           </p>
           <div className="month-columns__grid">
             {headers.map((h) => (
@@ -134,7 +134,7 @@ export function SheetSetup({ workbook, selection, headers, onChange, title }: Pr
             ))}
           </div>
           {selection.monthColumns.length === 0 && (
-            <p className="file-picker__error">Select at least one period column to continue.</p>
+            <p className="file-picker__error">{t('sheet.needPeriod')}</p>
           )}
         </div>
       )}

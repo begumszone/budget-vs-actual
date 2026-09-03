@@ -1,3 +1,4 @@
+import { useT } from '../lib/i18n';
 import { useState } from 'react';
 import type { CurrencyCode, Locale } from '../types';
 import type { ExclusionReason } from '../lib/detectSubtotals';
@@ -21,10 +22,10 @@ interface Props {
   onToggleInclude: (include: boolean) => void;
 }
 
-const REASON_TEXT: Record<ExclusionReason, string> = {
-  'no-account-code': 'No account code — reads as a section heading or roll-up',
-  'total-label': 'Labelled as a total',
-  'parent-rollup': 'Parent account — equals the sum of its sub-accounts',
+const REASON_KEY: Record<ExclusionReason, string> = {
+  'no-account-code': 'excluded.reason.noCode',
+  'total-label': 'excluded.reason.totalLabel',
+  'parent-rollup': 'excluded.reason.parentRollup',
 };
 
 /**
@@ -44,6 +45,7 @@ const REASON_ORDER: Record<ExclusionReason, number> = {
  * put them all back if the detection got it wrong for a given file.
  */
 export function ExcludedRowsPanel({ excluded, locale, dataCurrency, included, onToggleInclude }: Props) {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   if (excluded.length === 0) return null;
@@ -58,25 +60,25 @@ export function ExcludedRowsPanel({ excluded, locale, dataCurrency, included, on
   return (
     <section className="unmatched-section">
       <button className="unmatched-toggle" onClick={() => setOpen((o) => !o)}>
-        {open ? '▾' : '▸'} {excluded.length} roll-up / heading row{excluded.length === 1 ? '' : 's'}{' '}
-        {included ? 'included' : 'excluded'} to avoid double counting
+        {open ? '▾' : '▸'}{' '}
+        {t(included ? 'excluded.toggleIncluded' : 'excluded.toggleExcluded', { n: excluded.length })}
       </button>
 
       {open && (
         <>
           <label className="excluded-rows__switch">
             <input type="checkbox" checked={included} onChange={(e) => onToggleInclude(e.target.checked)} />
-            Treat these as normal accounts instead
+            {t('excluded.treatAsNormal')}
           </label>
           <div className="table-scroll">
             <table className="variance-table">
               <thead>
                 <tr>
-                  <th>Account</th>
-                  <th>Department</th>
-                  <th>Month</th>
-                  <th className="num">Amount</th>
-                  <th>Why it was set aside</th>
+                  <th>{t('col.account')}</th>
+                  <th>{t('col.department')}</th>
+                  <th>{t('col.month')}</th>
+                  <th className="num">{t('col.amount')}</th>
+                  <th>{t('excluded.why')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -93,7 +95,7 @@ export function ExcludedRowsPanel({ excluded, locale, dataCurrency, included, on
                     <td>{item.department ?? '—'}</td>
                     <td>{item.month}</td>
                     <td className="num">{formatCurrency(item.amount, locale, dataCurrency)}</td>
-                    <td className="excluded-rows__reason">{REASON_TEXT[item.reason]}</td>
+                    <td className="excluded-rows__reason">{t(REASON_KEY[item.reason])}</td>
                   </tr>
                 ))}
               </tbody>

@@ -1,3 +1,4 @@
+import { useT } from '../lib/i18n';
 import { useMemo, useState } from 'react';
 import type { CurrencyCode, Locale } from '../types';
 import type { YtdTotalRow } from '../lib/computeYtdTotals';
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function YtdTotalsTable({ rows, locale, displayCurrency, fxActive, targetCurrency, labels }: Props) {
+  const t = useT();
   const [sortKey, setSortKey] = useState<SortKey>('variance_percent');
 
   const sorted = useMemo(() => {
@@ -37,13 +39,13 @@ export function YtdTotalsTable({ rows, locale, displayCurrency, fxActive, target
   return (
     <section className="variance-table-section">
       <div className="section-header">
-        <h2>Total by account ({labels.base} vs {labels.comparison}, all months)</h2>
+        <h2>{t('table.ytdTitle', { base: labels.base, comparison: labels.comparison })}</h2>
         <label className="sort-select">
-          Sort by
+          {t('table.sortBy')}
           <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}>
-            <option value="variance_percent">Biggest variance (%)</option>
-            <option value="variance_amount">Biggest variance (amount)</option>
-            <option value="account_code">Account code</option>
+            <option value="variance_percent">{t('sort.variancePct')}</option>
+            <option value="variance_amount">{t('sort.varianceAmount')}</option>
+            <option value="account_code">{t('sort.accountCode')}</option>
           </select>
         </label>
       </div>
@@ -57,8 +59,8 @@ export function YtdTotalsTable({ rows, locale, displayCurrency, fxActive, target
         <table className="variance-table">
           <thead>
             <tr>
-              <th>Account</th>
-              <th>Department</th>
+              <th>{t('col.account')}</th>
+              <th>{t('col.department')}</th>
               <th className="num">{labels.base}</th>
               <th className="num">{labels.comparison}</th>
               <th className="num">Variance</th>

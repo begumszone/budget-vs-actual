@@ -1,5 +1,6 @@
 import type { ThresholdSettings } from '../types';
 import type { ModeLabels } from '../lib/modeLabels';
+import { useT } from '../lib/i18n';
 
 interface Props {
   value: ThresholdSettings;
@@ -8,10 +9,11 @@ interface Props {
 }
 
 export function ThresholdControl({ value, onChange, labels }: Props) {
+  const t = useT();
   return (
     <div className="threshold-control">
       <label className="threshold-control__field">
-        Significant variance threshold
+        {t('threshold.label')}
         <div className="threshold-control__percent">
           ±
           <input
@@ -26,7 +28,7 @@ export function ThresholdControl({ value, onChange, labels }: Props) {
         </div>
       </label>
       <label className="threshold-control__field">
-        Bad direction
+        {t('threshold.direction')}
         <select
           value={value.increaseIsBad ? 'increase' : 'decrease'}
           onChange={(e) => onChange({ ...value, increaseIsBad: e.target.value === 'increase' })}

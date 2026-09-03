@@ -1,3 +1,4 @@
+import { useLocale, useT } from '../lib/i18n';
 import { useState } from 'react';
 import type { CurrencyCode, Locale, MonthlyRate } from '../types';
 import type { MonthlyRateEntry } from '../lib/monthlyRates';
@@ -75,6 +76,8 @@ function YearGroup({
   locale: Locale;
   quoteLabel: string;
 }) {
+  const t = useT();
+  const localeTag = useLocale() === 'tr' ? 'tr-TR' : 'en-US';
   const [applyAllValue, setApplyAllValue] = useState('');
   const hasBase = groupEntries.some((e) => e.appliesTo !== 'comparison');
   const hasComparison = groupEntries.some((e) => e.appliesTo !== 'base');
@@ -122,7 +125,11 @@ function YearGroup({
         {hasBase && (
           <div className="rate-year-group__apply-all">
             <span>
-              Apply one {labels.baseRateLabel.toLowerCase()} ({quoteLabel}) to all {baseColumnEntries.length} months:
+              {t('rate.applyAll', {
+                label: labels.baseRateLabel.toLocaleLowerCase(localeTag),
+                quote: quoteLabel,
+                n: baseColumnEntries.length,
+              })}
             </span>
             <input
               type="number"
@@ -133,7 +140,7 @@ function YearGroup({
               placeholder={quoteLabel}
             />
             <button type="button" className="btn btn--ghost btn--small" onClick={applyBaseRateToAll}>
-              Apply
+              {t('rate.apply')}
             </button>
           </div>
         )}
@@ -141,7 +148,7 @@ function YearGroup({
       <table className="rate-table">
         <thead>
           <tr>
-            <th>Month</th>
+            <th>{t('col.month')}</th>
             {hasBase && <th>{labels.baseRateLabel} ({quoteLabel})</th>}
             {hasComparison && <th>{labels.comparisonRateLabel} ({quoteLabel})</th>}
           </tr>
@@ -189,10 +196,11 @@ function YearGroup({
 }
 
 export function RateTableEditor({ entries, rates, onChange, labels, locale, dataCurrency, targetCurrency }: Props) {
+  const t = useT();
   const quoteLabel = formatQuoteLabel(dataCurrency, targetCurrency);
 
   if (entries.length === 0) {
-    return <p className="fx-panel__note">Map your data first -- rate entry rows appear once months are detected.</p>;
+    return <p className="fx-panel__note">{t('rate.mapFirst')}</p>;
   }
 
   const byYear = new Map<number, MonthlyRateEntry[]>();
@@ -205,14 +213,10 @@ export function RateTableEditor({ entries, rates, onChange, labels, locale, data
   return (
     <div className="rate-table-editor">
       <p className="fx-panel__note">
-        Every rate below is quoted as <strong>{quoteLabel}</strong> — enter the number exactly as you'd see it
-        quoted (e.g. an actual USD/TRY rate around 30-40), regardless of which side is your data currency. The
-        column headers repeat this so you can never enter it backwards.
+        {t('rate.quotedAs', { quote: quoteLabel })}
       </p>
       <p className="fx-panel__note">
-        Rates apply per calendar month. Leave a month blank to exclude it from the converted figures -- it will be
-        flagged in the table and export, never assumed to be 1.0. You can paste a column of rates copied from Excel
-        directly into the first cell of a column.
+        {t('rate.perMonth')}
       </p>
       {[...byYear.entries()]
         .sort((a, b) => a[0] - b[0])

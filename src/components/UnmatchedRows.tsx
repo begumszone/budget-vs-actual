@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useLocale, useT } from '../lib/i18n';
 import type { CurrencyCode, Locale } from '../types';
 import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
 import type { ModeLabels } from '../lib/modeLabels';
@@ -13,6 +14,9 @@ interface Props {
 }
 
 export function UnmatchedRows({ rows, locale, displayCurrency, labels, formatMonth }: Props) {
+  const t = useT();
+  // Turkish lowercases I as ı; use the locale's own casing rules.
+  const localeTag = useLocale() === 'tr' ? 'tr-TR' : 'en-US';
   const [open, setOpen] = useState(false);
 
   const unmatched = useMemo(
@@ -28,21 +32,26 @@ export function UnmatchedRows({ rows, locale, displayCurrency, labels, formatMon
   return (
     <section className="unmatched-section">
       <button className="unmatched-toggle" onClick={() => setOpen((o) => !o)}>
-        {open ? '▾' : '▸'} {unmatched.length} unmatched row{unmatched.length === 1 ? '' : 's'} found
-        ({baseOnly.length} {labels.baseOnlyLabel.toLowerCase()}, {comparisonOnly.length}{' '}
-        {labels.comparisonOnlyLabel.toLowerCase()})
+        {open ? '▾' : '▸'}{' '}
+        {t('unmatched.toggle', {
+          n: unmatched.length,
+          baseCount: baseOnly.length,
+          baseLabel: labels.baseOnlyLabel.toLocaleLowerCase(localeTag),
+          compCount: comparisonOnly.length,
+          compLabel: labels.comparisonOnlyLabel.toLocaleLowerCase(localeTag),
+        })}
       </button>
       {open && (
         <div className="table-scroll">
           <table className="variance-table">
             <thead>
               <tr>
-                <th>Account</th>
-                <th>Department</th>
-                <th>Month</th>
+                <th>{t('col.account')}</th>
+                <th>{t('col.department')}</th>
+                <th>{t('col.month')}</th>
                 <th className="num">{labels.base}</th>
                 <th className="num">{labels.comparison}</th>
-                <th>Present in</th>
+                <th>{t('unmatched.presentIn')}</th>
               </tr>
             </thead>
             <tbody>

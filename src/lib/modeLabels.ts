@@ -1,4 +1,5 @@
-import type { AnalysisMode, YearSelection } from '../types';
+import type { AnalysisMode, Locale, YearSelection } from '../types';
+import { translate } from './i18n';
 
 export interface ModeLabels {
   title: string;
@@ -16,35 +17,38 @@ export interface ModeLabels {
   amountFieldLabel: string;
 }
 
-export function getModeLabels(mode: AnalysisMode, years?: YearSelection): ModeLabels {
+export function getModeLabels(mode: AnalysisMode, locale: Locale, years?: YearSelection): ModeLabels {
+  const t = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
+
   if (mode === 'yoy') {
-    const base = years?.baseYear != null ? String(years.baseYear) : 'Base year';
-    const comparison = years?.comparisonYear != null ? String(years.comparisonYear) : 'Comparison year';
+    const base = years?.baseYear != null ? String(years.baseYear) : t('labels.yoy.baseYear');
+    const comparison =
+      years?.comparisonYear != null ? String(years.comparisonYear) : t('labels.yoy.comparisonYear');
     return {
-      title: `Year over Year (${base} vs ${comparison})`,
+      title: t('labels.yoy.title', { base, comparison }),
       base,
       comparison,
-      increaseBadOption: `Higher than ${base} is bad`,
-      decreaseBadOption: `Lower than ${base} is bad`,
-      baseRateLabel: `${base} rate`,
-      comparisonRateLabel: `${comparison} rate`,
-      baseOnlyLabel: `${base} only`,
-      comparisonOnlyLabel: `${comparison} only`,
-      actualsFileLabel: 'Actuals file (all years)',
-      amountFieldLabel: 'Amount',
+      increaseBadOption: t('labels.yoy.increaseBad', { base }),
+      decreaseBadOption: t('labels.yoy.decreaseBad', { base }),
+      baseRateLabel: t('labels.yoy.baseRate', { base }),
+      comparisonRateLabel: t('labels.yoy.comparisonRate', { comparison }),
+      baseOnlyLabel: t('labels.yoy.baseOnly', { base }),
+      comparisonOnlyLabel: t('labels.yoy.comparisonOnly', { comparison }),
+      actualsFileLabel: t('labels.yoy.actualsFile'),
+      amountFieldLabel: t('labels.yoy.amountField'),
     };
   }
   return {
-    title: 'Budget vs Actual',
-    base: 'Budget',
-    comparison: 'Actual',
-    increaseBadOption: 'Over budget is bad (expenses)',
-    decreaseBadOption: 'Under budget is bad (revenue)',
-    baseRateLabel: 'Budget rate (plan)',
-    comparisonRateLabel: 'Actual rate (realized)',
-    baseOnlyLabel: 'Budget only',
-    comparisonOnlyLabel: 'Actual only',
-    actualsFileLabel: 'Budget file',
-    amountFieldLabel: 'Budget amount',
+    title: t('labels.bva.title'),
+    base: t('labels.bva.base'),
+    comparison: t('labels.bva.comparison'),
+    increaseBadOption: t('labels.bva.increaseBad'),
+    decreaseBadOption: t('labels.bva.decreaseBad'),
+    baseRateLabel: t('labels.bva.baseRate'),
+    comparisonRateLabel: t('labels.bva.comparisonRate'),
+    baseOnlyLabel: t('labels.bva.baseOnly'),
+    comparisonOnlyLabel: t('labels.bva.comparisonOnly'),
+    actualsFileLabel: t('labels.bva.actualsFile'),
+    amountFieldLabel: t('labels.bva.amountField'),
   };
 }

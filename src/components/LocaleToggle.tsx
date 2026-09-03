@@ -1,4 +1,5 @@
 import type { Locale } from '../types';
+import { useT } from '../lib/i18n';
 
 interface Props {
   value: Locale;
@@ -6,8 +7,9 @@ interface Props {
 }
 
 export function LocaleToggle({ value, onChange }: Props) {
+  const t = useT();
   return (
-    <div className="locale-toggle" role="radiogroup" aria-label="Number format locale">
+    <div className="locale-toggle" role="radiogroup" aria-label={t('locale.label')}>
       <button
         type="button"
         className={value === 'en' ? 'locale-toggle__btn locale-toggle__btn--active' : 'locale-toggle__btn'}

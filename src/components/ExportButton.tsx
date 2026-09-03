@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../lib/i18n';
 import type { CurrencyCode, FxReportingSettings, Locale, ThresholdSettings } from '../types';
 import type { EnrichedVarianceRow } from '../lib/enrichRowsWithFx';
 import type { YtdTotalRow } from '../lib/computeYtdTotals';
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export function ExportButton({ rows, ytdRows, threshold, locale, dataCurrency, fx, labels, formatMonth, rateEntries }: Props) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
 
   async function handleExport() {
@@ -51,7 +53,7 @@ export function ExportButton({ rows, ytdRows, threshold, locale, dataCurrency, f
 
   return (
     <button className="btn btn--secondary" onClick={handleExport} disabled={busy || rows.length === 0}>
-      {busy ? 'Preparing export…' : 'Export to Excel'}
+      {busy ? t('export.busy') : t('export.button')}
     </button>
   );
 }
