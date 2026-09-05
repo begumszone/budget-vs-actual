@@ -151,6 +151,7 @@ const en: Dict = {
   'chart.varianceByDept': 'Where the variance is, by cost centre',
   'chart.varianceByAccount': 'Where the variance is, by account',
   'chart.varianceLede': 'Each bar is {comparison} minus {base}. Red is the direction you called bad; green is the direction you wanted.',
+  'chart.varianceTopN': 'Showing the {n} largest of {total} accounts that moved.',
   'chart.deptLede': 'The two figures side by side, so you can see the size of each cost centre as well as the gap.',
   'chart.trendLede': 'How the two lines ran month by month. Where they separate is where the variance built up.',
 
@@ -361,6 +362,7 @@ const tr: Dict = {
   'chart.varianceByDept': 'Sapma nerede — masraf merkezine göre',
   'chart.varianceByAccount': 'Sapma nerede — hesaba göre',
   'chart.varianceLede': 'Her çubuk {comparison} eksi {base} demektir. Kırmızı sizin kötü dediğiniz yön, yeşil istediğiniz yön.',
+  'chart.varianceTopN': 'Sapma gösteren {total} hesabın en büyük {n} tanesi listeleniyor.',
   'chart.deptLede': 'İki rakam yan yana; hem her masraf merkezinin büyüklüğünü hem aradaki farkı görürsünüz.',
   'chart.trendLede': 'İki çizginin ay ay seyri. Ayrıştıkları yer, sapmanın biriktiği yerdir.',
 

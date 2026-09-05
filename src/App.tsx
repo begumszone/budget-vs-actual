@@ -455,6 +455,16 @@ export default function App() {
             </div>
             {fxActive && <FxSummary rows={enrichedRows} targetCurrency={fx.targetCurrency} locale={locale} />}
             <VarianceByGroupChart
+              groupBy="department"
+              rows={enrichedRows}
+              locale={locale}
+              displayCurrency={displayCurrency}
+              labels={labels}
+              threshold={threshold}
+            />
+            <VarianceByGroupChart
+              groupBy="account"
+              limit={10}
               rows={enrichedRows}
               locale={locale}
               displayCurrency={displayCurrency}
