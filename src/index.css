@@ -1167,3 +1167,172 @@ table.variance-table {
   color: var(--text-muted);
   max-width: 76ch;
 }
+
+/* --- How it works: the method, stated on the page --- */
+
+.how {
+  margin-top: 40px;
+  padding-top: 26px;
+  border-top: 1px solid var(--border);
+}
+
+.how__title {
+  font-size: 17px;
+  margin-bottom: 2px;
+}
+
+.how__subtitle {
+  margin: 0 0 6px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  max-width: 78ch;
+}
+
+.how__heading {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin: 26px 0 12px;
+}
+
+.how__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px 26px;
+}
+
+.how__step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.how__marker {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.how__step-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.how__step-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/*
+ * The three cards are not the same shape: two hold a single short term, the
+ * third holds three equations that have to line up under each other. An equal
+ * split either wraps the equations mid-term or leaves the short cards mostly
+ * empty, so the columns are laid out explicitly and the FX card takes the
+ * width it needs -- a full row until there is enough room to sit beside the
+ * other two. Widths were chosen by measuring the rendered Turkish strings,
+ * which are the longest of the two languages.
+ */
+.how__formulas {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  /* Each card ends where its own text ends. Stretching the two one-line
+     formulas to match the FX block leaves half a screen of empty panel next
+     to them, which reads as something that failed to load. */
+  align-items: start;
+}
+
+@media (min-width: 700px) {
+  .how__formulas {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .how__formula:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1120px) {
+  .how__formulas {
+    grid-template-columns: 1fr 1fr 2fr;
+  }
+
+  .how__formula:last-child {
+    grid-column: auto;
+  }
+}
+
+.how__formula {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px 15px;
+}
+
+.how__formula dd {
+  margin: 0;
+}
+
+.how__formula-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.how__formula-code {
+  margin: 0 0 8px;
+  padding: 9px 11px;
+  background: var(--surface-sunken);
+  border-radius: 7px;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.how__formula-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.how__limits {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  max-width: 92ch;
+}
+
+.how__limits li {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}

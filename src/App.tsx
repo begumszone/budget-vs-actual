@@ -25,6 +25,7 @@ import { LocaleToggle } from './components/LocaleToggle';
 import { VarianceByGroupChart } from './components/VarianceByGroupChart';
 import { ThemeToggle } from './components/ThemeToggle';
 import { Faq } from './components/Faq';
+import { HowItWorks } from './components/HowItWorks';
 import { LocaleContext, translate } from './lib/i18n';
 import { useTheme } from './hooks/useTheme';
 import { DataCurrencySelector } from './components/DataCurrencySelector';
@@ -514,6 +515,7 @@ export default function App() {
         )}
       </main>
 
+      <HowItWorks />
       <Faq />
     </div>
     </LocaleContext.Provider>
